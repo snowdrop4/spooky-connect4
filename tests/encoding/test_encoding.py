@@ -28,7 +28,7 @@ def test_encode_state_length() -> None:
 
 def test_encode_game_planes_count() -> None:
     game = spooky_connect4.Game(width=7, height=6)
-    data, num_planes, height, width = game.encode_game_planes()
+    _data, num_planes, _height, _width = game.encode_game_planes()
 
     # Should have 17 planes total
     assert num_planes == 17
@@ -40,7 +40,7 @@ def get_plane_value(data: list[float], plane: int, row: int, col: int, height: i
 
 def test_encode_empty_game() -> None:
     game = spooky_connect4.Game(width=7, height=6)
-    data, num_planes, height, width = game.encode_game_planes()
+    data, _num_planes, height, width = game.encode_game_planes()
 
     # First two planes (current player and opponent) should be all zeros
     for plane in range(2):
@@ -56,7 +56,7 @@ def test_encode_with_pieces() -> None:
     move = spooky_connect4.Move(0, 0)
     game.make_move(move)
 
-    data, num_planes, height, width = game.encode_game_planes()
+    data, _num_planes, height, width = game.encode_game_planes()
 
     # Now should have a piece somewhere in the first two planes
     has_piece = False
@@ -85,7 +85,7 @@ def test_encode_different_players() -> None:
     game = spooky_connect4.Game(width=7, height=6)
 
     # Red's turn
-    data_red, num_planes, height, width = game.encode_game_planes()
+    data_red, _num_planes, _height, _width = game.encode_game_planes()
 
     # Make a move to switch to Yellow
     move = game.legal_moves()[0]
