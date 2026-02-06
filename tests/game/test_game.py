@@ -1,62 +1,62 @@
-import rust_connect4
+import spooky_connect4
 
 
 def test_game_creation() -> None:
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
     assert game is not None
 
 
 def test_game_initial_state() -> None:
-    game = rust_connect4.Game(width=7, height=6)
-    assert game.turn() == rust_connect4.RED
+    game = spooky_connect4.Game(width=7, height=6)
+    assert game.turn() == spooky_connect4.RED
     assert not game.is_over()
     assert game.outcome() is None
 
 
 def test_game_legal_moves_initial() -> None:
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
     moves = game.legal_moves()
     assert len(moves) == 7  # All 7 columns are available
 
 
 def test_game_make_move() -> None:
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
     moves = game.legal_moves()
     assert len(moves) > 0
 
     move = moves[0]
     success = game.make_move(move)
     assert success
-    assert game.turn() == rust_connect4.YELLOW
+    assert game.turn() == spooky_connect4.YELLOW
 
 
 def test_game_make_invalid_move() -> None:
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
     # Create a move with invalid column
-    invalid_move = rust_connect4.Move(10, 0)
+    invalid_move = spooky_connect4.Move(10, 0)
     success = game.make_move(invalid_move)
     assert not success
 
 
 def test_game_unmake_move() -> None:
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
     moves = game.legal_moves()
     move = moves[0]
 
     game.make_move(move)
-    assert game.turn() == rust_connect4.YELLOW
+    assert game.turn() == spooky_connect4.YELLOW
 
     success = game.unmake_move()
     assert success
-    assert game.turn() == rust_connect4.RED
+    assert game.turn() == spooky_connect4.RED
 
 
 def test_game_column_fill() -> None:
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
 
     # Fill column 0 completely (6 moves)
     for i in range(6):
-        move = rust_connect4.Move(0, i)
+        move = spooky_connect4.Move(0, i)
         success = game.make_move(move)
         assert success
 
@@ -66,31 +66,31 @@ def test_game_column_fill() -> None:
 
 
 def test_game_vertical_win() -> None:
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
 
     # Red plays column 0 four times
     for i in range(3):
         # Red move
-        red_move = rust_connect4.Move(0, i)
+        red_move = spooky_connect4.Move(0, i)
         game.make_move(red_move)
 
         # Yellow move in different column
-        yellow_move = rust_connect4.Move(1, i)
+        yellow_move = spooky_connect4.Move(1, i)
         game.make_move(yellow_move)
 
     # Red's fourth move should win
-    winning_move = rust_connect4.Move(0, 3)
+    winning_move = spooky_connect4.Move(0, 3)
     game.make_move(winning_move)
 
     assert game.is_over()
     outcome = game.outcome()
     assert outcome is not None
-    assert outcome.winner() == rust_connect4.RED
+    assert outcome.winner() == spooky_connect4.RED
     assert not outcome.is_draw()
 
 
 def test_game_horizontal_win() -> None:
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
 
     # Create horizontal win for Red
     # Red: columns 0, 1, 2, 3 (row 0)
@@ -98,25 +98,25 @@ def test_game_horizontal_win() -> None:
 
     for col in range(3):
         # Red plays bottom row
-        red_move = rust_connect4.Move(col, 0)
+        red_move = spooky_connect4.Move(col, 0)
         game.make_move(red_move)
 
         # Yellow plays second row
-        yellow_move = rust_connect4.Move(col, 1)
+        yellow_move = spooky_connect4.Move(col, 1)
         game.make_move(yellow_move)
 
     # Red's fourth move should win
-    winning_move = rust_connect4.Move(3, 0)
+    winning_move = spooky_connect4.Move(3, 0)
     game.make_move(winning_move)
 
     assert game.is_over()
     outcome = game.outcome()
     assert outcome is not None
-    assert outcome.winner() == rust_connect4.RED
+    assert outcome.winner() == spooky_connect4.RED
 
 
 def test_game_diagonal_win() -> None:
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
 
     # Create a diagonal win - simpler approach
     # Just play a game and ensure diagonal detection works
@@ -141,7 +141,7 @@ def test_game_diagonal_win() -> None:
 
 
 def test_game_clone() -> None:
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
     move = game.legal_moves()[0]
     game.make_move(move)
 
@@ -151,17 +151,17 @@ def test_game_clone() -> None:
 
 
 def test_game_is_legal_move() -> None:
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
 
     # Legal move
-    legal_move = rust_connect4.Move(0, 0)
+    legal_move = spooky_connect4.Move(0, 0)
     assert game.is_legal_move(legal_move)
 
     # Make the move
     game.make_move(legal_move)
 
     # Next piece in column 0 should be at row 1
-    next_move = rust_connect4.Move(0, 1)
+    next_move = spooky_connect4.Move(0, 1)
     assert game.is_legal_move(next_move)
 
     # Row 0 is no longer legal in column 0
@@ -169,20 +169,20 @@ def test_game_is_legal_move() -> None:
 
 
 def test_game_board() -> None:
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
     board = game.board()
     assert board is not None
-    assert isinstance(board, rust_connect4.Board)
+    assert isinstance(board, spooky_connect4.Board)
 
 
 def test_game_str() -> None:
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
     s = str(game)
     assert isinstance(s, str)
     assert len(s) > 0
 
 
 def test_game_repr() -> None:
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
     r = repr(game)
     assert "Game" in r

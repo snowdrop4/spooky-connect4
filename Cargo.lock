@@ -226,19 +226,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust-connect4"
-version = "0.2.15"
-dependencies = [
- "bincode",
- "bitflags",
- "num_cpus",
- "pyo3",
- "rand",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "ryu"
 version = "1.0.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -285,6 +272,19 @@ dependencies = [
  "ryu",
  "serde",
  "serde_core",
+]
+
+[[package]]
+name = "spooky_connect4"
+version = "0.2.17"
+dependencies = [
+ "bincode",
+ "bitflags",
+ "num_cpus",
+ "pyo3",
+ "rand",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

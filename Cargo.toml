@@ -1,10 +1,10 @@
 [package]
-name = "rust-connect4"
-version = "0.2.15"
+name = "spooky_connect4"
+version = "0.2.17"
 edition = "2021"
 
 [lib]
-name = "rust_connect4"
+name = "spooky_connect4"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]

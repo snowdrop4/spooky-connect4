@@ -17,7 +17,7 @@ use pyo3::prelude::*;
 
 #[cfg(feature = "python")]
 #[pymodule(gil_used = false)]
-fn rust_connect4(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn spooky_connect4(m: &Bound<'_, PyModule>) -> PyResult<()> {
     use player::Player;
     use python_bindings::*;
     m.add_class::<PyBoard>()?;

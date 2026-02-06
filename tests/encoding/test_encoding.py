@@ -1,8 +1,8 @@
-import rust_connect4
+import spooky_connect4
 
 
 def test_encode_state() -> None:
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
     data, num_planes, height, width = game.encode_game_planes()
 
     # Should return flat data with shape metadata
@@ -14,7 +14,7 @@ def test_encode_state() -> None:
 
 
 def test_encode_state_length() -> None:
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
     data, num_planes, height, width = game.encode_game_planes()
 
     # Total planes = (HISTORY_LENGTH * PIECE_PLANES) + CONSTANT_PLANES
@@ -27,7 +27,7 @@ def test_encode_state_length() -> None:
 
 
 def test_encode_game_planes_count() -> None:
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
     data, num_planes, height, width = game.encode_game_planes()
 
     # Should have 17 planes total
@@ -39,7 +39,7 @@ def get_plane_value(data: list[float], plane: int, row: int, col: int, height: i
 
 
 def test_encode_empty_game() -> None:
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
     data, num_planes, height, width = game.encode_game_planes()
 
     # First two planes (current player and opponent) should be all zeros
@@ -50,10 +50,10 @@ def test_encode_empty_game() -> None:
 
 
 def test_encode_with_pieces() -> None:
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
 
     # Make a move
-    move = rust_connect4.Move(0, 0)
+    move = spooky_connect4.Move(0, 0)
     game.make_move(move)
 
     data, num_planes, height, width = game.encode_game_planes()
@@ -70,19 +70,19 @@ def test_encode_with_pieces() -> None:
 
 
 def test_move_encode_decode() -> None:
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
 
-    move = rust_connect4.Move(3, 0)
+    move = spooky_connect4.Move(3, 0)
     encoded = move.encode()
     assert encoded == 3
 
-    decoded = rust_connect4.Move.decode(encoded, game)
+    decoded = spooky_connect4.Move.decode(encoded, game)
     assert decoded is not None
     assert decoded.col() == move.col()
 
 
 def test_encode_different_players() -> None:
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
 
     # Red's turn
     data_red, num_planes, height, width = game.encode_game_planes()

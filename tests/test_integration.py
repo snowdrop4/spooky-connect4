@@ -1,11 +1,11 @@
 import random
 
-import rust_connect4
+import spooky_connect4
 
 
 def test_full_game_simulation() -> None:
     """Play a full random game to completion"""
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
 
     moves_made = 0
     max_moves = 42  # Maximum possible moves in Connect4
@@ -29,7 +29,7 @@ def test_full_game_simulation() -> None:
 
 def test_game_with_undo() -> None:
     """Test making and unmaking moves"""
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
 
     # Make 10 moves
     moves = []
@@ -48,14 +48,14 @@ def test_game_with_undo() -> None:
         assert success
 
     # Should be back to initial state
-    assert game.turn() == rust_connect4.RED
+    assert game.turn() == spooky_connect4.RED
     assert not game.is_over()
     assert len(game.legal_moves()) == 7
 
 
 def test_clone_independence() -> None:
     """Test that cloned games are independent"""
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
 
     # Make some moves
     for _ in range(5):
@@ -83,7 +83,7 @@ def test_clone_independence() -> None:
 
 def test_encode_decode_all_moves() -> None:
     """Test encoding and decoding all legal moves"""
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
 
     for _ in range(20):
         if game.is_over():
@@ -96,7 +96,7 @@ def test_encode_decode_all_moves() -> None:
             encoded_move = move.encode()
 
             # Decode it back
-            decoded_move = rust_connect4.Move.decode(encoded_move, game)
+            decoded_move = spooky_connect4.Move.decode(encoded_move, game)
 
             assert decoded_move is not None
             assert decoded_move.col() == move.col()
@@ -108,37 +108,37 @@ def test_encode_decode_all_moves() -> None:
 
 def test_constants() -> None:
     """Test that constants are defined correctly"""
-    assert rust_connect4.RED == 1
-    assert rust_connect4.YELLOW == -1
+    assert spooky_connect4.RED == 1
+    assert spooky_connect4.YELLOW == -1
 
 
 def test_outcome_properties() -> None:
     """Test outcome properties for different game endings"""
     # Test Red win
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
 
     # Create a vertical win for Red
     for i in range(3):
-        game.make_move(rust_connect4.Move(0, i))
-        game.make_move(rust_connect4.Move(1, i))
+        game.make_move(spooky_connect4.Move(0, i))
+        game.make_move(spooky_connect4.Move(1, i))
 
-    game.make_move(rust_connect4.Move(0, 3))
+    game.make_move(spooky_connect4.Move(0, 3))
 
     assert game.is_over()
     outcome = game.outcome()
     assert outcome is not None
-    assert outcome.winner() == rust_connect4.RED
+    assert outcome.winner() == spooky_connect4.RED
     assert not outcome.is_draw()
     assert "Red" in outcome.name()
 
 
 def test_board_representation() -> None:
     """Test board string representation"""
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
 
     # Make some moves
-    game.make_move(rust_connect4.Move(0, 0))
-    game.make_move(rust_connect4.Move(1, 0))
+    game.make_move(spooky_connect4.Move(0, 0))
+    game.make_move(spooky_connect4.Move(1, 0))
 
     board_str = str(game.board())
 
@@ -151,7 +151,7 @@ def test_board_representation() -> None:
 def test_sequential_games() -> None:
     """Test playing multiple games in sequence"""
     for _ in range(10):
-        game = rust_connect4.Game(width=7, height=6)
+        game = spooky_connect4.Game(width=7, height=6)
 
         # Play a short game
         for _ in range(10):
@@ -170,24 +170,24 @@ def test_sequential_games() -> None:
 
 def test_move_validation() -> None:
     """Test that invalid moves are properly rejected"""
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
 
     # Fill column 0 completely
     for i in range(6):
-        game.make_move(rust_connect4.Move(0, i))
+        game.make_move(spooky_connect4.Move(0, i))
 
     # Try to add another piece to column 0
     board = game.board()
     assert board.is_column_full(0)
 
     # This move should be rejected (wrong row)
-    invalid_move = rust_connect4.Move(0, 0)
+    invalid_move = spooky_connect4.Move(0, 0)
     assert not game.is_legal_move(invalid_move)
 
 
 def test_random_game_with_encoding() -> None:
     """Play a random game while encoding state at each step"""
-    game = rust_connect4.Game(width=7, height=6)
+    game = spooky_connect4.Game(width=7, height=6)
 
     encodings = []
     moves_count = 0
