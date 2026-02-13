@@ -179,7 +179,7 @@ mod tests {
 
     #[test]
     fn test_fuzz_encoding_random_games() {
-        use rand::seq::SliceRandom;
+        use rand::prelude::IndexedRandom;
         use rand::SeedableRng;
         use std::sync::atomic::{AtomicU64, Ordering};
         use std::sync::Arc;
@@ -294,7 +294,7 @@ mod tests {
 
     #[test]
     fn test_encoding_consistency() {
-        use rand::seq::SliceRandom;
+        use rand::prelude::IndexedRandom;
         use rand::SeedableRng;
 
         let mut game = Game::standard();
