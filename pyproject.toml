@@ -7,7 +7,7 @@ name = "spooky_connect4"
 version = "0.2.17"
 description = "High-performance connect4 library with arbitrary board sizes"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 classifiers = []
 dependencies = []
 
@@ -26,7 +26,7 @@ dev = [
 
 [tool.ruff]
 line-length = 120
-target-version = "py313"
+target-version = "py314"
 exclude = ["vendor"]
 
 [tool.ruff.lint]
