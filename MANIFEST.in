@@ -1,0 +1,4 @@
+include Cargo.toml
+include Cargo.lock
+recursive-include src *.rs
+include spooky_connect4.pyi

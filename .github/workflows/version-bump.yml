@@ -1,0 +1,57 @@
+name: Version Bump
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  version-bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Bump version in Cargo.toml
+        run: sed -i '0,/^version = ".*"$/s//version = "${{ steps.version.outputs.version }}"/' Cargo.toml
+
+      - name: Bump version in pyproject.toml
+        run: sed -i '0,/^version = ".*"$/s//version = "${{ steps.version.outputs.version }}"/' pyproject.toml
+
+      - name: Update Cargo.lock
+        run: cargo generate-lockfile
+
+      - name: Create branch and commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "release/${{ github.ref_name }}"
+          git add Cargo.toml pyproject.toml Cargo.lock
+          git commit -m "release: bump version to ${{ steps.version.outputs.version }}"
+          git push origin "release/${{ github.ref_name }}"
+
+      - name: Create autorelease label
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh label create autorelease --color "6f42c1" --description "Automated release version bump" --force
+
+      - name: Create pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create \
+            --base master \
+            --head "release/${{ github.ref_name }}" \
+            --title "release: bump version to ${{ steps.version.outputs.version }}" \
+            --body "Automated version bump triggered by release \`${{ github.ref_name }}\`." \
+            --label autorelease

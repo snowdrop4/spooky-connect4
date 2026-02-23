@@ -2,6 +2,10 @@
 name = "spooky_connect4"
 version = "0.2.17"
 edition = "2021"
+description = "Connect4 board game engine"
+license = "MIT"
+repository = "https://github.com/snowdrop4/spooky-connect4"
+include = ["src/**/*.rs", "benches/**/*.rs", "Cargo.toml", "README.md", "LICENSE.md"]
 
 [lib]
 name = "spooky_connect4"
