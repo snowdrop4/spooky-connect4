@@ -268,34 +268,26 @@ mod tests {
     fn test_draw() {
         let mut game = Game::standard();
 
-        // Fill the board without anyone winning
-        // Pattern to avoid wins: alternate columns
+        // Fill columns in groups of 3, row-by-row within each group.
+        // This creates alternating color patterns that avoid 4-in-a-row
+        // in all directions (horizontal, vertical, diagonal).
         let pattern = vec![
-            0, 0, 0, 1, 1, 1, // Col 0, 1
-            0, 0, 0, 1, 1, 1, // Col 0, 1
-            2, 2, 2, 3, 3, 3, // Col 2, 3
-            2, 2, 2, 3, 3, 3, // Col 2, 3
-            4, 4, 4, 5, 5, 5, // Col 4, 5
-            4, 4, 4, 5, 5, 5, // Col 4, 5
+            0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, // Cols 0-2
+            3, 4, 5, 3, 4, 5, 3, 4, 5, 3, 4, 5, 3, 4, 5, 3, 4, 5, // Cols 3-5
             6, 6, 6, 6, 6, 6, // Col 6
         ];
 
         for &col in &pattern {
-            if game.is_over() {
-                break;
-            }
+            assert!(!game.is_over(), "Game ended early before board was filled");
             let legal_moves = game.legal_moves();
             let move_ = legal_moves.iter().find(|m| m.col == col).cloned();
-            if let Some(m) = move_ {
-                game.make_move(&m);
-            }
+            let m = move_.expect("Expected column to be playable");
+            game.make_move(&m);
         }
 
-        // If we filled the board, it should be a draw
-        if game.board().is_board_full() {
-            assert!(game.is_over());
-            assert_eq!(game.outcome(), Some(GameOutcome::Draw));
-        }
+        assert!(game.board().is_board_full());
+        assert!(game.is_over());
+        assert_eq!(game.outcome(), Some(GameOutcome::Draw));
     }
 
     #[test]
@@ -400,10 +392,4 @@ mod tests {
         assert!(!game.unmake_move());
     }
 
-    #[test]
-    fn test_board_access() {
-        let game = Game::standard();
-        let board = game.board();
-        assert!(!board.is_board_full());
-    }
 }

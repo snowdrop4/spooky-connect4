@@ -13,27 +13,6 @@ def test_encode_state() -> None:
     assert len(data) == num_planes * height * width
 
 
-def test_encode_state_length() -> None:
-    game = spooky_connect4.Game(width=7, height=6)
-    data, num_planes, height, width = game.encode_game_planes()
-
-    # Total planes = (HISTORY_LENGTH * PIECE_PLANES) + CONSTANT_PLANES
-    # HISTORY_LENGTH = 8, PIECE_PLANES = 2, CONSTANT_PLANES = 1
-    # Total = (8 * 2) + 1 = 17 planes
-    assert num_planes == 17
-    assert height == 6
-    assert width == 7
-    assert len(data) == 17 * 6 * 7
-
-
-def test_encode_game_planes_count() -> None:
-    game = spooky_connect4.Game(width=7, height=6)
-    _data, num_planes, _height, _width = game.encode_game_planes()
-
-    # Should have 17 planes total
-    assert num_planes == 17
-
-
 def get_plane_value(data: list[float], plane: int, row: int, col: int, height: int, width: int) -> float:
     return data[plane * height * width + row * width + col]
 

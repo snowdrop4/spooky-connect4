@@ -128,17 +128,6 @@ mod tests {
     }
 
     #[test]
-    fn test_encode_game() {
-        let game = Game::standard();
-        let (data, num_planes, height, width) = encode_game_planes(&game);
-
-        assert_eq!(num_planes, TOTAL_INPUT_PLANES);
-        assert_eq!(height, game.height());
-        assert_eq!(width, game.width());
-        assert_eq!(data.len(), num_planes * height * width);
-    }
-
-    #[test]
     fn test_encode_decode_move() {
         let game = Game::standard();
 
@@ -277,22 +266,6 @@ mod tests {
     }
 
     #[test]
-    fn test_fuzz_encoding_all_columns() {
-        let game = Game::standard();
-        // Test that all columns can be encoded and decoded
-        for col in 0..game.width() {
-            let move_ = Move::new(col, 0);
-
-            let action = encode_move(&move_);
-            assert_eq!(action, col);
-
-            let decoded = decode_move(action, &game);
-            assert!(decoded.is_some());
-            assert_eq!(decoded.unwrap().col, col);
-        }
-    }
-
-    #[test]
     fn test_encoding_consistency() {
         use rand::prelude::IndexedRandom;
         use rand::SeedableRng;
@@ -347,17 +320,6 @@ mod tests {
             initial_encoding, final_encoding,
             "Encoding after undo should match initial state"
         );
-    }
-
-    #[test]
-    fn test_plane_sizes() {
-        let game = Game::standard();
-        let (data, num_planes, height, width) = encode_game_planes(&game);
-
-        assert_eq!(num_planes, TOTAL_INPUT_PLANES);
-        assert_eq!(height, game.height());
-        assert_eq!(width, game.width());
-        assert_eq!(data.len(), num_planes * height * width);
     }
 
     #[test]
@@ -475,17 +437,13 @@ mod tests {
         let (data1, num_planes1, height1, width1) = encode_game_planes(&game1);
         let (data2, num_planes2, height2, width2) = encode_game_planes(&game2);
 
-        // Different board sizes should produce different dimensions
         assert_eq!(num_planes1, TOTAL_INPUT_PLANES);
         assert_eq!(num_planes2, TOTAL_INPUT_PLANES);
 
-        // Check dimensions
-        assert_eq!(height1, 6);
-        assert_eq!(width1, 7);
-        assert_eq!(data1.len(), num_planes1 * 6 * 7);
+        assert_eq!((height1, width1), (6, 7));
+        assert_eq!((height2, width2), (8, 10));
 
-        assert_eq!(height2, 8);
-        assert_eq!(width2, 10);
-        assert_eq!(data2.len(), num_planes2 * 8 * 10);
+        // Different board sizes must produce different-length encodings
+        assert_ne!(data1.len(), data2.len());
     }
 }

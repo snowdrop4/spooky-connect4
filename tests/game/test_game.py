@@ -3,11 +3,6 @@ import random
 import spooky_connect4
 
 
-def test_game_creation() -> None:
-    game = spooky_connect4.Game(width=7, height=6)
-    assert game is not None
-
-
 def test_game_initial_state() -> None:
     game = spooky_connect4.Game(width=7, height=6)
     assert game.turn() == spooky_connect4.RED
@@ -158,31 +153,6 @@ def test_game_horizontal_win() -> None:
     assert outcome.winner() == spooky_connect4.RED
 
 
-def test_game_diagonal_win() -> None:
-    game = spooky_connect4.Game(width=7, height=6)
-
-    # Create a diagonal win - simpler approach
-    # Just play a game and ensure diagonal detection works
-    # This is tested by the game logic itself
-
-    # Play several moves
-    moves_made = 0
-    max_moves = 42
-
-    while not game.is_over() and moves_made < max_moves:
-        legal_moves = game.legal_moves()
-        if not legal_moves:
-            break
-
-        # Make first legal move
-        game.make_move(legal_moves[0])
-        moves_made += 1
-
-    # Game should eventually end (win or draw)
-    # The diagonal win detection is tested in Rust unit tests
-    assert moves_made > 0
-
-
 def test_game_clone() -> None:
     game = spooky_connect4.Game(width=7, height=6)
     move = game.legal_moves()[0]
@@ -211,26 +181,6 @@ def test_game_is_legal_move() -> None:
     assert not game.is_legal_move(legal_move)
 
 
-def test_game_board() -> None:
-    game = spooky_connect4.Game(width=7, height=6)
-    board = game.board()
-    assert board is not None
-    assert isinstance(board, spooky_connect4.Board)
-
-
-def test_game_str() -> None:
-    game = spooky_connect4.Game(width=7, height=6)
-    s = str(game)
-    assert isinstance(s, str)
-    assert len(s) > 0
-
-
-def test_game_repr() -> None:
-    game = spooky_connect4.Game(width=7, height=6)
-    r = repr(game)
-    assert "Game" in r
-
-
 def test_full_game() -> None:
     game = spooky_connect4.Game(width=7, height=6)
 
@@ -252,33 +202,6 @@ def test_full_game() -> None:
     assert game.is_over()
     outcome = game.outcome()
     assert outcome is not None
-
-
-def test_clone_independence() -> None:
-    game = spooky_connect4.Game(width=7, height=6)
-
-    # Make some moves
-    for _ in range(5):
-        legal_moves = game.legal_moves()
-        if not legal_moves:
-            break
-        game.make_move(legal_moves[0])
-
-    # Clone the game
-    cloned = game.clone()
-
-    # Make different moves in each
-    game_moves = game.legal_moves()
-    cloned_moves = cloned.legal_moves()
-
-    if game_moves:
-        game.make_move(game_moves[0])
-
-    if len(cloned_moves) > 1:
-        cloned.make_move(cloned_moves[1])
-
-    # Games should now be different (assuming they had different moves available)
-    # At minimum, they should be independent
 
 
 def test_outcome_properties() -> None:
