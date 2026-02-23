@@ -1,13 +1,15 @@
-# Develop
+# spooky_connect4
 
-## Rust Tests
+Rust and Python library for the game of Connect4.
 
-```
-fish run_rust_tests.fish
-```
+## Develop
 
-## Python Tests
+### Tests
 
-```
-fish run_python_tests.fish
-```
+- `fish run_tests.fish`
+    - `fish run_python_tests.fish`
+    - `fish run_rust_tests.fish`
+
+### Lints
+
+- `fish run_lints.fish`
