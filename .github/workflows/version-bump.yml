@@ -38,7 +38,7 @@ jobs:
           git checkout -b "release/${{ github.ref_name }}"
           git add Cargo.toml pyproject.toml Cargo.lock
           git commit -m "release: bump version to ${{ steps.version.outputs.version }}"
-          git push origin "release/${{ github.ref_name }}"
+          git push origin "release/${{ github.ref_name }}"  --force
 
       - name: Create autorelease label
         env:
