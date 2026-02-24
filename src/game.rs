@@ -391,5 +391,4 @@ mod tests {
         let mut game = Game::standard();
         assert!(!game.unmake_move());
     }
-
 }
