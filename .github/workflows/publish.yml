@@ -1,34 +1,64 @@
-name: Publish
+name: Release
 
 on:
-  pull_request:
-    types: [closed]
-    branches: [master]
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
-  check-release:
-    if: github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'autorelease')
+  version-bump:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
+      branch: ${{ steps.version.outputs.branch }}
       tag: ${{ steps.version.outputs.tag }}
     steps:
-      - name: Extract version from branch name
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Extract version from tag
         id: version
         run: |
-          branch="${{ github.event.pull_request.head.ref }}"
-          tag="${branch#release/}"
+          tag="${GITHUB_REF_NAME}"
           version="${tag#v}"
+          branch="release/${tag}"
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
+      - name: Bump version in Cargo.toml
+        run: sed -i '0,/^version = ".*"$/s//version = "${{ steps.version.outputs.version }}"/' Cargo.toml
+
+      - name: Bump version in pyproject.toml
+        run: sed -i '0,/^version = ".*"$/s//version = "${{ steps.version.outputs.version }}"/' pyproject.toml
+
+      - name: Update Cargo.lock
+        run: cargo generate-lockfile
+
+      - name: Create branch and commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "${{ steps.version.outputs.branch }}"
+          git add Cargo.toml pyproject.toml Cargo.lock
+          git commit -m "release: bump version to ${{ steps.version.outputs.version }}"
+          git push origin "${{ steps.version.outputs.branch }}" --force
+
   publish-crates-io:
-    needs: check-release
+    needs: version-bump
     runs-on: ubuntu-latest
     permissions:
       id-token: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version-bump.outputs.branch }}
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -41,13 +71,15 @@ jobs:
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
 
   build-wheels:
-    needs: check-release
+    needs: version-bump
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version-bump.outputs.branch }}
 
       - uses: dtolnay/rust-toolchain@stable
         if: runner.os == 'macOS'
@@ -68,10 +100,12 @@ jobs:
           path: ./wheelhouse/*.whl
 
   build-sdist:
-    needs: check-release
+    needs: version-bump
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version-bump.outputs.branch }}
 
       - name: Build sdist
         run: pipx run build --sdist
@@ -82,7 +116,7 @@ jobs:
           path: ./dist/*.tar.gz
 
   publish-pypi:
-    needs: [check-release, build-wheels, build-sdist]
+    needs: [version-bump, build-wheels, build-sdist]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -96,17 +130,38 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
 
-  update-tag:
-    needs: [check-release, publish-crates-io, publish-pypi]
+  finalize:
+    needs: [version-bump, publish-crates-io, publish-pypi]
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: master
           fetch-depth: 0
 
-      - name: Force-update release tag to squash commit
+      - name: Create autorelease label
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh label create autorelease --color "6f42c1" --description "Automated release version bump" --force
+
+      - name: Create and merge pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git tag -f "${{ needs.check-release.outputs.tag }}" HEAD
-          git push origin "${{ needs.check-release.outputs.tag }}" --force
+          gh pr create \
+            --base master \
+            --head "${{ needs.version-bump.outputs.branch }}" \
+            --title "release: bump version to ${{ needs.version-bump.outputs.version }}" \
+            --body "Automated version bump triggered by release \`${{ needs.version-bump.outputs.tag }}\`." \
+            --label autorelease
+
+          gh pr merge "${{ needs.version-bump.outputs.branch }}" \
+            --squash \
+            --delete-branch \
+            --admin
+
+      - name: Force-update release tag to merged commit
+        run: |
+          git pull origin master
+          git tag -f "${{ needs.version-bump.outputs.tag }}" HEAD
+          git push origin "${{ needs.version-bump.outputs.tag }}" --force
