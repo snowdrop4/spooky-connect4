@@ -1,6 +1,6 @@
 [package]
 name = "spooky_connect4"
-version = "0.2.17"
+version = "0.2.18"
 edition = "2021"
 description = "Connect4 board game engine"
 license = "MIT"
