@@ -51,8 +51,6 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         if: runner.os == 'macOS'
-        with:
-          targets: x86_64-apple-darwin
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.22
@@ -61,7 +59,8 @@ jobs:
           CIBW_SKIP: "*-musllinux* *-manylinux_i686"
           CIBW_BEFORE_ALL_LINUX: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && echo 'export PATH=$HOME/.cargo/bin:$PATH' >> /etc/environment"
           CIBW_ENVIRONMENT_LINUX: "PATH=$HOME/.cargo/bin:$PATH"
-          CIBW_ARCHS_MACOS: "x86_64 arm64"
+          CIBW_ARCHS_MACOS: "arm64"
+          MACOSX_DEPLOYMENT_TARGET: "11.0"
 
       - uses: actions/upload-artifact@v4
         with:
