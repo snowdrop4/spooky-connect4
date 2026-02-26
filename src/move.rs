@@ -2,12 +2,12 @@ use crate::position::Position;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Move {
-    pub col: usize,
-    pub row: usize,
+    pub col: u8,
+    pub row: u8,
 }
 
 impl Move {
-    pub fn new(col: usize, row: usize) -> Self {
+    pub fn new(col: u8, row: u8) -> Self {
         Move { col, row }
     }
 

@@ -17,16 +17,15 @@ pub const TOTAL_INPUT_PLANES: usize = (HISTORY_LENGTH * PIECE_PLANES) + CONSTANT
 
 /// Encode the full game state into a flat f32 array for efficient transfer to Python/numpy
 /// Returns (flat_data, num_planes, height, width), where flat_data is in row-major order
-pub fn encode_game_planes(game: &Game) -> (Vec<f32>, usize, usize, usize) {
+pub fn encode_game_planes<const NW: usize>(game: &Game<NW>) -> (Vec<f32>, usize, usize, usize) {
     let perspective = game.turn();
     let opponent = perspective.opposite();
-    let width = game.width();
-    let height = game.height();
+    let width = game.width() as usize;
+    let height = game.height() as usize;
     let num_planes = TOTAL_INPUT_PLANES;
     let total_size = num_planes * height * width;
     let mut data = vec![0.0f32; total_size];
 
-    // Helper to set a value in the flat array
     let set_plane_value =
         |data: &mut Vec<f32>, plane: usize, row: usize, col: usize, value: f32| {
             data[plane * height * width + row * width + col] = value;
@@ -35,7 +34,7 @@ pub fn encode_game_planes(game: &Game) -> (Vec<f32>, usize, usize, usize) {
     // Plane for current player's pieces
     for row in 0..height {
         for col in 0..width {
-            let pos = Position::new(col, row);
+            let pos = Position::new(col as u8, row as u8);
             if let Some(player) = game.board().get_piece(&pos) {
                 if player == perspective {
                     set_plane_value(&mut data, 0, row, col, 1.0);
@@ -47,7 +46,7 @@ pub fn encode_game_planes(game: &Game) -> (Vec<f32>, usize, usize, usize) {
     // Plane for opponent's pieces
     for row in 0..height {
         for col in 0..width {
-            let pos = Position::new(col, row);
+            let pos = Position::new(col as u8, row as u8);
             if let Some(player) = game.board().get_piece(&pos) {
                 if player == opponent {
                     set_plane_value(&mut data, 1, row, col, 1.0);
@@ -72,29 +71,37 @@ pub fn encode_game_planes(game: &Game) -> (Vec<f32>, usize, usize, usize) {
 
 /// Encode a move as an action index for the policy head
 pub fn encode_move(move_: &Move) -> usize {
-    move_.col
+    move_.col as usize
 }
 
 /// Decode an action index back to a move
 /// Returns the column number and row where the piece would land
-pub fn decode_move(action: usize, game: &Game) -> Option<Move> {
-    if action >= game.width() {
+pub fn decode_move<const NW: usize>(action: usize, game: &Game<NW>) -> Option<Move> {
+    if action >= game.width() as usize {
         return None;
     }
 
-    // Calculate the row where the piece would land
-    let row = game.board().column_height(action);
+    let col = action as u8;
+    let row = game.board().column_height(col, game.geo());
 
     if row >= game.height() {
         return None;
     }
 
-    Some(Move::new(action, row))
+    Some(Move::new(col, row))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bitboard::nw_for_board;
+    use crate::board::{STANDARD_COLS, STANDARD_ROWS};
+
+    type StdGame = Game<{ nw_for_board(STANDARD_COLS, STANDARD_ROWS) }>;
+
+    fn standard_game() -> StdGame {
+        StdGame::new(STANDARD_COLS, STANDARD_ROWS)
+    }
 
     fn get_plane_value(
         data: &[f32],
@@ -109,15 +116,14 @@ mod tests {
 
     #[test]
     fn test_encode_game_empty() {
-        let game = Game::standard();
+        let game = standard_game();
         let (data, num_planes, height, width) = encode_game_planes(&game);
 
         assert_eq!(num_planes, TOTAL_INPUT_PLANES);
-        assert_eq!(height, game.height());
-        assert_eq!(width, game.width());
+        assert_eq!(height, game.height() as usize);
+        assert_eq!(width, game.width() as usize);
         assert_eq!(data.len(), num_planes * height * width);
 
-        // First two planes (current and opponent pieces) should be zeros for empty board
         for plane in 0..PIECE_PLANES {
             for row in 0..height {
                 for col in 0..width {
@@ -129,41 +135,36 @@ mod tests {
 
     #[test]
     fn test_encode_decode_move() {
-        let game = Game::standard();
+        let game = standard_game();
 
         for col in 0..game.width() {
             let move_ = Move::new(col, 0);
             let encoded = encode_move(&move_);
-            assert_eq!(encoded, col);
+            assert_eq!(encoded, col as usize);
 
             let decoded = decode_move(encoded, &game).unwrap();
             assert_eq!(decoded.col, col);
-            assert_eq!(decoded.row, 0); // Empty board, so pieces land at row 0
+            assert_eq!(decoded.row, 0);
         }
     }
 
     #[test]
     fn test_encode_game_with_pieces() {
-        let mut game = Game::standard();
+        let mut game = standard_game();
 
-        // Drop a red piece in column 0
         let move1 = Move::new(0, 0);
         game.make_move(&move1);
 
-        // Drop a yellow piece in column 1
         let move2 = Move::new(1, 0);
         game.make_move(&move2);
 
-        // Now it's Red's turn again, encode from Red's perspective
         let (data, _num_planes, height, width) = encode_game_planes(&game);
 
-        // Check red piece plane (row 0, columns 0 and 1)
-        assert_eq!(get_plane_value(&data, 0, 0, 0, height, width), 1.0); // Red piece at (row 0, col 0)
-        assert_eq!(get_plane_value(&data, 0, 0, 1, height, width), 0.0); // No red piece at (row 0, col 1)
+        assert_eq!(get_plane_value(&data, 0, 0, 0, height, width), 1.0);
+        assert_eq!(get_plane_value(&data, 0, 0, 1, height, width), 0.0);
 
-        // Check yellow piece plane
-        assert_eq!(get_plane_value(&data, 1, 0, 0, height, width), 0.0); // No yellow piece at (row 0, col 0)
-        assert_eq!(get_plane_value(&data, 1, 0, 1, height, width), 1.0); // Yellow piece at (row 0, col 1)
+        assert_eq!(get_plane_value(&data, 1, 0, 0, height, width), 0.0);
+        assert_eq!(get_plane_value(&data, 1, 0, 1, height, width), 1.0);
     }
 
     #[test]
@@ -193,7 +194,7 @@ mod tests {
                 let mut thread_moves_tested = 0u64;
 
                 for _game_num in 0..games_per_thread {
-                    let mut game = Game::standard();
+                    let mut game = standard_game();
                     let max_moves = 42;
 
                     for _move_num in 0..max_moves {
@@ -208,14 +209,14 @@ mod tests {
 
                         let (data, num_planes, height, width) = encode_game_planes(&game);
                         assert_eq!(num_planes, TOTAL_INPUT_PLANES);
-                        assert_eq!(height, game.height());
-                        assert_eq!(width, game.width());
+                        assert_eq!(height, game.height() as usize);
+                        assert_eq!(width, game.width() as usize);
                         assert_eq!(data.len(), num_planes * height * width);
 
                         for move_ in &legal_moves {
                             let action = encode_move(move_);
                             assert!(
-                                action < game.width(),
+                                action < game.width() as usize,
                                 "Invalid action {} for move col {}",
                                 action,
                                 move_.col
@@ -270,10 +271,9 @@ mod tests {
         use rand::prelude::IndexedRandom;
         use rand::SeedableRng;
 
-        let mut game = Game::standard();
+        let mut game = standard_game();
         let mut rng = rand::rngs::StdRng::seed_from_u64(123);
 
-        // Play several moves
         for _ in 0..20 {
             if game.is_over() {
                 break;
@@ -284,12 +284,10 @@ mod tests {
                 break;
             }
 
-            // Encode state multiple times - should be consistent
             let encoding1 = encode_game_planes(&game);
             let encoding2 = encode_game_planes(&game);
             assert_eq!(encoding1, encoding2, "Encoding should be deterministic");
 
-            // Make a move
             let chosen_move = legal_moves.choose(&mut rng).unwrap();
             game.make_move(chosen_move);
         }
@@ -297,24 +295,19 @@ mod tests {
 
     #[test]
     fn test_encoding_after_undo() {
-        let mut game = Game::standard();
+        let mut game = standard_game();
 
-        // Encode initial state
         let initial_encoding = encode_game_planes(&game);
 
-        // Make a move
         let move1 = Move::new(0, 0);
         game.make_move(&move1);
 
-        // Make another move
         let move2 = Move::new(1, 0);
         game.make_move(&move2);
 
-        // Undo both moves
         game.unmake_move();
         game.unmake_move();
 
-        // Encoding should match initial state
         let final_encoding = encode_game_planes(&game);
         assert_eq!(
             initial_encoding, final_encoding,
@@ -324,17 +317,15 @@ mod tests {
 
     #[test]
     fn test_encoding_different_positions() {
-        let mut game1 = Game::standard();
-        let mut game2 = Game::standard();
+        let mut game1 = standard_game();
+        let mut game2 = standard_game();
 
-        // Play different moves
         game1.make_move(&Move::new(0, 0));
         game2.make_move(&Move::new(1, 0));
 
         let encoding1 = encode_game_planes(&game1);
         let encoding2 = encode_game_planes(&game2);
 
-        // Encodings should be different
         assert_ne!(
             encoding1, encoding2,
             "Different positions should have different encodings"
@@ -343,78 +334,67 @@ mod tests {
 
     #[test]
     fn test_invalid_action_decoding() {
-        let game = Game::standard();
+        let game = standard_game();
 
-        // Test out of bounds action
-        assert!(decode_move(game.width(), &game).is_none());
-        assert!(decode_move(game.width() + 1, &game).is_none());
+        assert!(decode_move(game.width() as usize, &game).is_none());
+        assert!(decode_move(game.width() as usize + 1, &game).is_none());
         assert!(decode_move(100, &game).is_none());
     }
 
     #[test]
     fn test_encoding_full_column() {
-        let mut game = Game::standard();
+        let mut game = standard_game();
 
-        // Fill column 0
         for i in 0..game.height() {
             let move_ = Move::new(0, i);
             game.make_move(&move_);
         }
 
-        // Column 0 should not be in legal moves
         let legal_moves = game.legal_moves();
         assert!(legal_moves.iter().all(|m| m.col != 0));
 
-        // Trying to decode action 0 should return None because column is full
         let decoded = decode_move(0, &game);
         assert!(decoded.is_none(), "Decoding full column should return None");
     }
 
     #[test]
     fn test_encode_arbitrary_board_size_10x8() {
-        let game = Game::new(10, 8);
+        let game = Game::<{ nw_for_board(10, 8) }>::new(10, 8);
 
-        // Test dimensions
         assert_eq!(game.width(), 10);
         assert_eq!(game.height(), 8);
 
-        // Test encoding produces correct sized planes
         let (data, num_planes, height, width) = encode_game_planes(&game);
         assert_eq!(num_planes, TOTAL_INPUT_PLANES);
         assert_eq!(height, 8);
         assert_eq!(width, 10);
         assert_eq!(data.len(), num_planes * height * width);
 
-        // Test move encoding/decoding
-        for col in 0..10 {
+        for col in 0..10u8 {
             let move_ = Move::new(col, 0);
             let encoded = encode_move(&move_);
-            assert_eq!(encoded, col);
+            assert_eq!(encoded, col as usize);
 
             let decoded = decode_move(encoded, &game).unwrap();
             assert_eq!(decoded.col, col);
         }
 
-        // Test out of bounds
         assert!(decode_move(10, &game).is_none());
     }
 
     #[test]
     fn test_encode_arbitrary_board_size_5x5() {
-        let game = Game::new(5, 5);
+        let game = Game::<{ nw_for_board(5, 5) }>::new(5, 5);
 
-        // Test dimensions
         assert_eq!(game.width(), 5);
         assert_eq!(game.height(), 5);
 
-        // Test encoding produces correct sized planes
         let (data, num_planes, height, width) = encode_game_planes(&game);
         assert_eq!(num_planes, TOTAL_INPUT_PLANES);
         assert_eq!(height, 5);
         assert_eq!(width, 5);
         assert_eq!(data.len(), num_planes * height * width);
 
-        // Fill the board and test encoding still works
         let mut test_game = game.clone();
         for _ in 0..25 {
             let legal_moves = test_game.legal_moves();
@@ -431,8 +411,8 @@ mod tests {
 
     #[test]
     fn test_encode_different_board_sizes_different_encodings() {
-        let game1 = Game::new(7, 6);
-        let game2 = Game::new(10, 8);
+        let game1 = Game::<{ nw_for_board(7, 6) }>::new(7, 6);
+        let game2 = Game::<{ nw_for_board(10, 8) }>::new(10, 8);
 
         let (data1, num_planes1, height1, width1) = encode_game_planes(&game1);
         let (data2, num_planes2, height2, width2) = encode_game_planes(&game2);
@@ -443,7 +423,6 @@ mod tests {
         assert_eq!((height1, width1), (6, 7));
         assert_eq!((height2, width2), (8, 10));
 
-        // Different board sizes must produce different-length encodings
         assert_ne!(data1.len(), data2.len());
     }
 }

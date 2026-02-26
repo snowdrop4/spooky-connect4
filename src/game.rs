@@ -1,22 +1,25 @@
-use crate::board::{Board, STANDARD_COLS, STANDARD_ROWS};
+use crate::bitboard::BoardGeometry;
+use crate::board::Board;
 use crate::outcome::GameOutcome;
 use crate::player::Player;
 use crate::position::Position;
 use crate::r#move::Move;
 
 #[derive(Debug)]
-pub struct Game {
-    board: Board,
+pub struct Game<const NW: usize> {
+    board: Board<NW>,
+    geo: BoardGeometry<NW>,
     current_player: Player,
     move_history: Vec<Move>,
     is_over: bool,
     outcome: Option<GameOutcome>,
 }
 
-impl Game {
-    pub fn new(width: usize, height: usize) -> Self {
+impl<const NW: usize> Game<NW> {
+    pub fn new(width: u8, height: u8) -> Self {
         Game {
             board: Board::new(width, height),
+            geo: BoardGeometry::new(width, height),
             current_player: Player::Red,
             move_history: Vec::new(),
             is_over: false,
@@ -24,15 +27,11 @@ impl Game {
         }
     }
 
-    pub fn standard() -> Self {
-        Self::new(STANDARD_COLS, STANDARD_ROWS)
-    }
-
-    pub fn width(&self) -> usize {
+    pub fn width(&self) -> u8 {
         self.board.width()
     }
 
-    pub fn height(&self) -> usize {
+    pub fn height(&self) -> u8 {
         self.board.height()
     }
 
@@ -44,8 +43,12 @@ impl Game {
         self.board.set_piece(pos, player)
     }
 
-    pub fn board(&self) -> &Board {
+    pub fn board(&self) -> &Board<NW> {
         &self.board
+    }
+
+    pub fn geo(&self) -> &BoardGeometry<NW> {
+        &self.geo
     }
 
     pub fn turn(&self) -> Player {
@@ -71,9 +74,8 @@ impl Game {
 
         let mut moves = Vec::new();
         for col in 0..self.board.width() {
-            if !self.board.is_column_full(col) {
-                // Calculate where the piece would land
-                let row = self.board.column_height(col);
+            if !self.board.is_column_full(col, &self.geo) {
+                let row = self.board.column_height(col, &self.geo);
                 moves.push(Move::new(col, row));
             }
         }
@@ -89,8 +91,8 @@ impl Game {
             return false;
         }
 
-        // Check if the column is not full and the row matches where the piece would land
-        !self.board.is_column_full(move_.col) && move_.row == self.board.column_height(move_.col)
+        !self.board.is_column_full(move_.col, &self.geo)
+            && move_.row == self.board.column_height(move_.col, &self.geo)
     }
 
     pub fn make_move(&mut self, move_: &Move) -> bool {
@@ -98,13 +100,14 @@ impl Game {
             return false;
         }
 
-        // Drop the piece
-        if let Some(row) = self.board.drop_piece(move_.col, self.current_player) {
-            let pos = Position::new(move_.col, row);
-            self.move_history.push(*move_);
+        if let Some(row) = self
+            .board
+            .drop_piece(move_.col, self.current_player, &self.geo)
+        {
+            self.move_history.push(Move::new(move_.col, row));
 
             // Check for win
-            if self.board.check_win(&pos, self.current_player) {
+            if self.board.check_win(self.current_player, &self.geo) {
                 self.is_over = true;
                 self.outcome = Some(match self.current_player {
                     Player::Red => GameOutcome::RedWin,
@@ -112,7 +115,7 @@ impl Game {
                 });
             }
             // Check for draw
-            else if self.board.is_board_full() {
+            else if self.board.is_board_full(&self.geo) {
                 self.is_over = true;
                 self.outcome = Some(GameOutcome::Draw);
             }
@@ -127,11 +130,9 @@ impl Game {
 
     pub fn unmake_move(&mut self) -> bool {
         if let Some(last_move) = self.move_history.pop() {
-            // Clear the piece at the position
             let pos = Position::new(last_move.col, last_move.row);
             self.board.set_piece(&pos, None);
 
-            // Reset game state
             self.is_over = false;
             self.outcome = None;
             self.current_player = self.current_player.opposite();
@@ -143,10 +144,11 @@ impl Game {
     }
 }
 
-impl Clone for Game {
+impl<const NW: usize> Clone for Game<NW> {
     fn clone(&self) -> Self {
         Game {
-            board: self.board.clone(),
+            board: self.board,
+            geo: self.geo,
             current_player: self.current_player,
             move_history: self.move_history.clone(),
             is_over: self.is_over,
@@ -155,13 +157,7 @@ impl Clone for Game {
     }
 }
 
-impl Default for Game {
-    fn default() -> Self {
-        Self::standard()
-    }
-}
-
-impl std::fmt::Display for Game {
+impl<const NW: usize> std::fmt::Display for Game<NW> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -174,11 +170,18 @@ impl std::fmt::Display for Game {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bitboard::nw_for_board;
     use crate::board::{STANDARD_COLS, STANDARD_ROWS};
+
+    type StdGame = Game<{ nw_for_board(STANDARD_COLS, STANDARD_ROWS) }>;
+
+    fn standard_game() -> StdGame {
+        StdGame::new(STANDARD_COLS, STANDARD_ROWS)
+    }
 
     #[test]
     fn test_new_game() {
-        let game = Game::standard();
+        let game = standard_game();
         assert_eq!(game.turn(), Player::Red);
         assert!(!game.is_over());
         assert!(game.outcome().is_none());
@@ -186,14 +189,14 @@ mod tests {
 
     #[test]
     fn test_legal_moves_initial() {
-        let game = Game::standard();
+        let game = standard_game();
         let moves = game.legal_moves();
-        assert_eq!(moves.len(), STANDARD_COLS);
+        assert_eq!(moves.len(), STANDARD_COLS as usize);
     }
 
     #[test]
     fn test_make_move() {
-        let mut game = Game::standard();
+        let mut game = standard_game();
         let move_ = Move::new(0, 0);
 
         assert!(game.is_legal_move(&move_));
@@ -203,7 +206,7 @@ mod tests {
 
     #[test]
     fn test_make_invalid_move() {
-        let mut game = Game::standard();
+        let mut game = standard_game();
         let move_ = Move::new(10, 0); // Invalid column
 
         assert!(!game.is_legal_move(&move_));
@@ -212,7 +215,7 @@ mod tests {
 
     #[test]
     fn test_unmake_move() {
-        let mut game = Game::standard();
+        let mut game = standard_game();
         let move_ = Move::new(0, 0);
 
         game.make_move(&move_);
@@ -225,10 +228,9 @@ mod tests {
 
     #[test]
     fn test_vertical_win() {
-        let mut game = Game::standard();
+        let mut game = standard_game();
 
-        // Red plays column 0 four times
-        for i in 0..3 {
+        for i in 0..3u8 {
             let red_move = Move::new(0, i);
             game.make_move(&red_move);
 
@@ -236,7 +238,6 @@ mod tests {
             game.make_move(&yellow_move);
         }
 
-        // Red's fourth move wins
         let winning_move = Move::new(0, 3);
         game.make_move(&winning_move);
 
@@ -246,10 +247,9 @@ mod tests {
 
     #[test]
     fn test_horizontal_win() {
-        let mut game = Game::standard();
+        let mut game = standard_game();
 
-        // Create horizontal win
-        for col in 0..3 {
+        for col in 0..3u8 {
             let red_move = Move::new(col, 0);
             game.make_move(&red_move);
 
@@ -266,12 +266,9 @@ mod tests {
 
     #[test]
     fn test_draw() {
-        let mut game = Game::standard();
+        let mut game = standard_game();
 
-        // Fill columns in groups of 3, row-by-row within each group.
-        // This creates alternating color patterns that avoid 4-in-a-row
-        // in all directions (horizontal, vertical, diagonal).
-        let pattern = vec![
+        let pattern: Vec<u8> = vec![
             0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, // Cols 0-2
             3, 4, 5, 3, 4, 5, 3, 4, 5, 3, 4, 5, 3, 4, 5, 3, 4, 5, // Cols 3-5
             6, 6, 6, 6, 6, 6, // Col 6
@@ -285,14 +282,14 @@ mod tests {
             game.make_move(&m);
         }
 
-        assert!(game.board().is_board_full());
+        assert!(game.board().is_board_full(&game.geo));
         assert!(game.is_over());
         assert_eq!(game.outcome(), Some(GameOutcome::Draw));
     }
 
     #[test]
     fn test_clone() {
-        let mut game = Game::standard();
+        let mut game = standard_game();
         let move_ = Move::new(0, 0);
         game.make_move(&move_);
 
@@ -304,7 +301,7 @@ mod tests {
 
     #[test]
     fn test_move_history() {
-        let mut game = Game::standard();
+        let mut game = standard_game();
 
         assert_eq!(game.move_history().len(), 0);
 
@@ -322,26 +319,23 @@ mod tests {
 
     #[test]
     fn test_legal_moves_when_column_full() {
-        let mut game = Game::standard();
+        let mut game = standard_game();
 
-        // Fill column 0
         for i in 0..STANDARD_ROWS {
             let move_ = Move::new(0, i);
             game.make_move(&move_);
         }
 
         let legal_moves = game.legal_moves();
-        // Should have 6 legal moves (columns 1-6)
-        assert_eq!(legal_moves.len(), STANDARD_COLS - 1);
+        assert_eq!(legal_moves.len(), STANDARD_COLS as usize - 1);
         assert!(legal_moves.iter().all(|m| m.col != 0));
     }
 
     #[test]
     fn test_legal_moves_when_game_over() {
-        let mut game = Game::standard();
+        let mut game = standard_game();
 
-        // Create a win
-        for i in 0..3 {
+        for i in 0..3u8 {
             game.make_move(&Move::new(0, i));
             game.make_move(&Move::new(1, i));
         }
@@ -353,30 +347,29 @@ mod tests {
 
     #[test]
     fn test_is_legal_move_after_column_full() {
-        let mut game = Game::standard();
+        let mut game = standard_game();
 
-        // Fill column 0
         for i in 0..STANDARD_ROWS {
             game.make_move(&Move::new(0, i));
         }
 
-        // Trying to play in column 0 should be illegal
         let move_ = Move::new(0, 0);
         assert!(!game.is_legal_move(&move_));
     }
 
     #[test]
     fn test_multiple_unmakes() {
-        let mut game = Game::standard();
+        let mut game = standard_game();
 
-        // Make 5 moves
-        for i in 0..5 {
-            game.make_move(&Move::new(i % STANDARD_COLS, 0));
+        for i in 0..5u8 {
+            let col = i % STANDARD_COLS;
+            let legal = game.legal_moves();
+            let m = legal.iter().find(|m| m.col == col).unwrap();
+            game.make_move(m);
         }
 
         assert_eq!(game.move_history().len(), 5);
 
-        // Unmake all moves
         for _ in 0..5 {
             assert!(game.unmake_move());
         }
@@ -388,7 +381,7 @@ mod tests {
 
     #[test]
     fn test_unmake_when_empty() {
-        let mut game = Game::standard();
+        let mut game = standard_game();
         assert!(!game.unmake_move());
     }
 }

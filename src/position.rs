@@ -1,26 +1,26 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Position {
-    pub col: usize,
-    pub row: usize,
+    pub col: u8,
+    pub row: u8,
 }
 
 impl Position {
-    pub fn new(col: usize, row: usize) -> Self {
+    pub fn new(col: u8, row: u8) -> Self {
         Position { col, row }
     }
 
-    pub fn from_index(index: usize, width: usize) -> Self {
+    pub fn from_index(index: usize, width: u8) -> Self {
         Position {
-            col: index % width,
-            row: index / width,
+            col: (index % width as usize) as u8,
+            row: (index / width as usize) as u8,
         }
     }
 
-    pub fn to_index(&self, width: usize) -> usize {
-        self.row * width + self.col
+    pub fn to_index(&self, width: u8) -> usize {
+        self.row as usize * width as usize + self.col as usize
     }
 
-    pub fn is_valid(&self, width: usize, height: usize) -> bool {
+    pub fn is_valid(&self, width: u8, height: u8) -> bool {
         self.col < width && self.row < height
     }
 }

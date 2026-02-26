@@ -1,3 +1,4 @@
+pub mod bitboard;
 pub mod board;
 pub mod encode;
 pub mod game;
@@ -5,9 +6,6 @@ pub mod r#move;
 pub mod outcome;
 pub mod player;
 pub mod position;
-
-#[cfg(feature = "serde")]
-pub mod serde_support;
 
 #[cfg(feature = "python")]
 extern crate pyo3;
@@ -33,6 +31,7 @@ fn spooky_connect4(m: &Bound<'_, PyModule>) -> PyResult<()> {
 #[cfg(feature = "python")]
 mod python_bindings {
     use super::*;
+    use crate::bitboard::nw_for_board;
     use crate::board::Board;
     use crate::encode;
     use crate::game::Game;
@@ -41,142 +40,235 @@ mod python_bindings {
     use crate::position::Position;
     use crate::r#move::Move;
 
+    // -----------------------------------------------------------------------
+    // Enum dispatch via paste! for Game<NW> and Board<NW>
+    // -----------------------------------------------------------------------
+
+    macro_rules! define_dispatch {
+        ($($nw:literal),*) => {
+            paste::paste! {
+                #[derive(Clone, Debug)]
+                enum GameInner {
+                    $( [<Nw $nw>](Game<$nw>), )*
+                }
+
+                #[derive(Clone, Debug)]
+                enum BoardInner {
+                    $( [<Nw $nw>](Board<$nw>), )*
+                }
+
+                macro_rules! dispatch_game {
+                    ($self_:expr, $g:ident => $body:expr) => {
+                        match $self_ {
+                            $( GameInner::[<Nw $nw>]($g) => $body, )*
+                        }
+                    };
+                }
+
+                macro_rules! dispatch_game_mut {
+                    ($self_:expr, $g:ident => $body:expr) => {
+                        match $self_ {
+                            $( GameInner::[<Nw $nw>]($g) => $body, )*
+                        }
+                    };
+                }
+
+                macro_rules! dispatch_board {
+                    ($self_:expr, $b:ident => $body:expr) => {
+                        match $self_ {
+                            $( BoardInner::[<Nw $nw>]($b) => $body, )*
+                        }
+                    };
+                }
+
+                macro_rules! dispatch_board_mut {
+                    ($self_:expr, $b:ident => $body:expr) => {
+                        match $self_ {
+                            $( BoardInner::[<Nw $nw>]($b) => $body, )*
+                        }
+                    };
+                }
+
+                fn make_game_inner(width: u8, height: u8) -> GameInner {
+                    let nw = nw_for_board(width, height);
+                    match nw {
+                        $( $nw => GameInner::[<Nw $nw>](Game::new(width, height)), )*
+                        _ => unreachable!("NW out of range: {}", nw),
+                    }
+                }
+
+                fn make_board_inner(width: u8, height: u8) -> BoardInner {
+                    let nw = nw_for_board(width, height);
+                    match nw {
+                        $( $nw => BoardInner::[<Nw $nw>](Board::new(width, height)), )*
+                        _ => unreachable!("NW out of range: {}", nw),
+                    }
+                }
+
+                macro_rules! game_to_board_inner {
+                    ($game_inner:expr) => {
+                        match $game_inner {
+                            $( GameInner::[<Nw $nw>](g) => BoardInner::[<Nw $nw>](*g.board()), )*
+                        }
+                    };
+                }
+            }
+        }
+    }
+
+    define_dispatch!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
+
+    // -----------------------------------------------------------------------
+    // PyBoard
+    // -----------------------------------------------------------------------
+
     #[pyclass(name = "Board")]
     #[derive(Clone)]
     pub struct PyBoard {
-        board: Board,
+        inner: BoardInner,
     }
 
     #[pymethods]
     impl PyBoard {
         #[new]
         pub fn new(width: usize, height: usize) -> PyResult<Self> {
-            if width < 4 || width > 32 {
+            if !(4..=32).contains(&width) {
                 return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
                     "Board width must be between 4 and 32",
                 ));
             }
-            if height < 4 || height > 32 {
+            if !(4..=32).contains(&height) {
                 return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
                     "Board height must be between 4 and 32",
                 ));
             }
             Ok(PyBoard {
-                board: Board::new(width, height),
+                inner: make_board_inner(width as u8, height as u8),
             })
         }
 
         #[staticmethod]
         pub fn standard() -> Self {
             PyBoard {
-                board: Board::standard(),
+                inner: make_board_inner(7, 6),
             }
         }
 
         pub fn width(&self) -> usize {
-            self.board.width()
+            dispatch_board!(&self.inner, b => b.width() as usize)
         }
 
         pub fn height(&self) -> usize {
-            self.board.height()
+            dispatch_board!(&self.inner, b => b.height() as usize)
         }
 
         pub fn get_piece(&self, col: usize, row: usize) -> Option<i8> {
-            let pos = Position::new(col, row);
-            self.board.get_piece(&pos).map(|p| p as i8)
+            let pos = Position::new(col as u8, row as u8);
+            dispatch_board!(&self.inner, b => b.get_piece(&pos).map(|p| p as i8))
         }
 
         pub fn set_piece(&mut self, col: usize, row: usize, piece: Option<i8>) {
-            let pos = Position::new(col, row);
+            let pos = Position::new(col as u8, row as u8);
             let player = piece.map(|p| Player::from_int(p).expect("Invalid player value"));
-            self.board.set_piece(&pos, player)
+            dispatch_board_mut!(&mut self.inner, b => b.set_piece(&pos, player))
         }
 
         pub fn clear(&mut self) {
-            self.board.clear()
+            dispatch_board_mut!(&mut self.inner, b => b.clear())
         }
 
         pub fn is_board_full(&self) -> bool {
-            self.board.is_board_full()
+            dispatch_board!(&self.inner, b => {
+                let geo = crate::bitboard::BoardGeometry::new(b.width(), b.height());
+                b.is_board_full(&geo)
+            })
         }
 
         pub fn is_column_full(&self, col: usize) -> bool {
-            self.board.is_column_full(col)
+            dispatch_board!(&self.inner, b => {
+                let geo = crate::bitboard::BoardGeometry::new(b.width(), b.height());
+                b.is_column_full(col as u8, &geo)
+            })
         }
 
         pub fn column_height(&self, col: usize) -> usize {
-            self.board.column_height(col)
+            dispatch_board!(&self.inner, b => {
+                let geo = crate::bitboard::BoardGeometry::new(b.width(), b.height());
+                b.column_height(col as u8, &geo) as usize
+            })
         }
 
         pub fn __str__(&self) -> String {
-            self.board.to_string()
+            dispatch_board!(&self.inner, b => b.to_string())
         }
 
         pub fn __repr__(&self) -> String {
-            format!(
-                "Board(width={}, height={})",
-                self.board.width(),
-                self.board.height()
-            )
+            let w = self.width();
+            let h = self.height();
+            format!("Board(width={}, height={})", w, h)
         }
     }
 
+    // -----------------------------------------------------------------------
+    // PyGame
+    // -----------------------------------------------------------------------
+
     #[pyclass(name = "Game")]
     pub struct PyGame {
-        game: Game,
+        inner: GameInner,
     }
 
     #[pymethods]
     impl PyGame {
         #[new]
         pub fn new(width: usize, height: usize) -> PyResult<Self> {
-            if width < 4 || width > 32 {
+            if !(4..=32).contains(&width) {
                 return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
                     "Board width must be between 4 and 32",
                 ));
             }
-            if height < 4 || height > 32 {
+            if !(4..=32).contains(&height) {
                 return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
                     "Board height must be between 4 and 32",
                 ));
             }
             Ok(PyGame {
-                game: Game::new(width, height),
+                inner: make_game_inner(width as u8, height as u8),
             })
         }
 
         #[staticmethod]
         pub fn standard() -> Self {
             PyGame {
-                game: Game::standard(),
+                inner: make_game_inner(7, 6),
             }
         }
 
         pub fn width(&self) -> usize {
-            self.game.board().width()
+            dispatch_game!(&self.inner, g => g.width() as usize)
         }
 
         pub fn height(&self) -> usize {
-            self.game.board().height()
+            dispatch_game!(&self.inner, g => g.height() as usize)
         }
 
         pub fn get_piece(&self, col: usize, row: usize) -> Option<i8> {
-            let pos = Position::new(col, row);
-            self.game.get_piece(&pos).map(|p| p as i8)
+            let pos = Position::new(col as u8, row as u8);
+            dispatch_game!(&self.inner, g => g.get_piece(&pos))
         }
 
         pub fn set_piece(&mut self, col: usize, row: usize, piece: Option<i8>) {
-            let pos = Position::new(col, row);
+            let pos = Position::new(col as u8, row as u8);
             let player = piece.map(|p| Player::from_int(p).expect("Invalid player value"));
-            self.game.set_piece(&pos, player)
+            dispatch_game_mut!(&mut self.inner, g => g.set_piece(&pos, player))
         }
 
         pub fn turn(&self) -> i8 {
-            self.game.turn() as i8
+            dispatch_game!(&self.inner, g => g.turn() as i8)
         }
 
         pub fn is_over(&self) -> bool {
-            self.game.is_over()
+            dispatch_game!(&self.inner, g => g.is_over())
         }
 
         // ---------------------------------------------------------------------
@@ -184,27 +276,30 @@ mod python_bindings {
         // ---------------------------------------------------------------------
 
         pub fn legal_action_indices(&self) -> Vec<usize> {
-            self.game
-                .legal_moves()
-                .into_iter()
-                .map(|m| encode::encode_move(&m))
-                .collect()
+            dispatch_game!(&self.inner, g => {
+                g.legal_moves()
+                    .into_iter()
+                    .map(|m| encode::encode_move(&m))
+                    .collect()
+            })
         }
 
         pub fn apply_action(&mut self, action: usize) -> bool {
-            if let Some(move_) = encode::decode_move(action, &self.game) {
-                self.game.make_move(&move_)
-            } else {
-                false
-            }
+            dispatch_game_mut!(&mut self.inner, g => {
+                if let Some(move_) = encode::decode_move(action, g) {
+                    g.make_move(&move_)
+                } else {
+                    false
+                }
+            })
         }
 
         pub fn action_size(&self) -> usize {
-            self.game.board().width()
+            dispatch_game!(&self.inner, g => g.width() as usize)
         }
 
         pub fn board_shape(&self) -> (usize, usize) {
-            (self.game.board().height(), self.game.board().width())
+            dispatch_game!(&self.inner, g => (g.height() as usize, g.width() as usize))
         }
 
         pub fn input_plane_count(&self) -> usize {
@@ -212,75 +307,74 @@ mod python_bindings {
         }
 
         pub fn reward_absolute(&self) -> f32 {
-            self.game
-                .outcome()
-                .map(|o| o.encode_winner_absolute())
-                .unwrap_or(0.0)
+            dispatch_game!(&self.inner, g => {
+                g.outcome()
+                    .map(|o| o.encode_winner_absolute())
+                    .unwrap_or(0.0)
+            })
         }
 
         pub fn reward_from_perspective(&self, perspective: i8) -> f32 {
-            self.game
-                .outcome()
-                .map(|o| {
-                    o.encode_winner_from_perspective(
-                        Player::from_int(perspective).expect("Invalid perspective"),
-                    )
-                })
-                .unwrap_or(0.0)
+            dispatch_game!(&self.inner, g => {
+                g.outcome()
+                    .map(|o| {
+                        o.encode_winner_from_perspective(
+                            Player::from_int(perspective).expect("Invalid perspective"),
+                        )
+                    })
+                    .unwrap_or(0.0)
+            })
         }
 
         pub fn name(&self) -> String {
-            format!(
-                "connect4_{}x{}",
-                self.game.board().width(),
-                self.game.board().height()
-            )
+            dispatch_game!(&self.inner, g => format!("connect4_{}x{}", g.width(), g.height()))
         }
 
         pub fn outcome(&self) -> Option<PyGameOutcome> {
-            self.game.outcome().map(|o| PyGameOutcome { outcome: o })
+            dispatch_game!(&self.inner, g => g.outcome().map(|o| PyGameOutcome { outcome: o }))
         }
 
         pub fn legal_moves(&self) -> Vec<PyMove> {
-            self.game
-                .legal_moves()
-                .into_iter()
-                .map(|m| PyMove { move_: m })
-                .collect()
+            dispatch_game!(&self.inner, g => {
+                g.legal_moves()
+                    .into_iter()
+                    .map(|m| PyMove { move_: m })
+                    .collect()
+            })
         }
 
         pub fn is_legal_move(&self, move_: &PyMove) -> bool {
-            self.game.is_legal_move(&move_.move_)
+            dispatch_game!(&self.inner, g => g.is_legal_move(&move_.move_))
         }
 
         pub fn make_move(&mut self, move_: &PyMove) -> bool {
-            self.game.make_move(&move_.move_)
+            dispatch_game_mut!(&mut self.inner, g => g.make_move(&move_.move_))
         }
 
         pub fn unmake_move(&mut self) -> bool {
-            self.game.unmake_move()
+            dispatch_game_mut!(&mut self.inner, g => g.unmake_move())
         }
 
         pub fn board(&self) -> PyBoard {
             PyBoard {
-                board: self.game.board().clone(),
+                inner: game_to_board_inner!(&self.inner),
             }
         }
 
         pub fn clone(&self) -> PyGame {
             PyGame {
-                game: self.game.clone(),
+                inner: self.inner.clone(),
             }
         }
 
         pub fn __hash__(&self) -> u64 {
             use std::hash::{Hash, Hasher};
-            let mut hasher = std::collections::hash_map::DefaultHasher::new();
-
-            self.game.board().hash(&mut hasher);
-            (self.game.turn() as i8).hash(&mut hasher);
-
-            hasher.finish()
+            dispatch_game!(&self.inner, g => {
+                let mut hasher = std::collections::hash_map::DefaultHasher::new();
+                g.board().hash(&mut hasher);
+                (g.turn() as i8).hash(&mut hasher);
+                hasher.finish()
+            })
         }
 
         // ---------------------------------------------------------------------
@@ -288,12 +382,13 @@ mod python_bindings {
         // ---------------------------------------------------------------------
 
         pub fn encode_game_planes(&self) -> (Vec<f32>, usize, usize, usize) {
-            encode::encode_game_planes(&self.game)
+            dispatch_game!(&self.inner, g => encode::encode_game_planes(g))
         }
 
         pub fn decode_action(&self, action: usize) -> Option<PyMove> {
-            // Find the legal move that matches this action
-            encode::decode_move(action, &self.game).map(|move_| PyMove { move_: move_ })
+            dispatch_game!(&self.inner, g => {
+                encode::decode_move(action, g).map(|move_| PyMove { move_ })
+            })
         }
 
         // ---------------------------------------------------------------------
@@ -301,17 +396,19 @@ mod python_bindings {
         // ---------------------------------------------------------------------
 
         pub fn __str__(&self) -> String {
-            self.game.to_string()
+            dispatch_game!(&self.inner, g => g.to_string())
         }
 
         pub fn __repr__(&self) -> String {
-            format!(
-                "Game(width={}, height={}, turn={:?}, over={})",
-                self.game.board().width(),
-                self.game.board().height(),
-                self.game.turn(),
-                self.game.is_over()
-            )
+            dispatch_game!(&self.inner, g => {
+                format!(
+                    "Game(width={}, height={}, turn={:?}, over={})",
+                    g.width(),
+                    g.height(),
+                    g.turn(),
+                    g.is_over()
+                )
+            })
         }
     }
 
@@ -326,16 +423,16 @@ mod python_bindings {
         #[new]
         pub fn new(col: usize, row: usize) -> Self {
             PyMove {
-                move_: Move::new(col, row),
+                move_: Move::new(col as u8, row as u8),
             }
         }
 
         pub fn col(&self) -> usize {
-            self.move_.col
+            self.move_.col as usize
         }
 
         pub fn row(&self) -> usize {
-            self.move_.row
+            self.move_.row as usize
         }
 
         // ---------------------------------------------------------------------
@@ -348,12 +445,14 @@ mod python_bindings {
 
         #[staticmethod]
         pub fn decode(data: usize, game: &PyGame) -> PyResult<Self> {
-            match encode::decode_move(data, &game.game) {
-                Some(mv) => Ok(PyMove { move_: mv }),
-                _ => Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                    "invalid move",
-                )),
-            }
+            dispatch_game!(&game.inner, g => {
+                match encode::decode_move(data, g) {
+                    Some(mv) => Ok(PyMove { move_: mv }),
+                    _ => Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                        "invalid move",
+                    )),
+                }
+            })
         }
 
         // ---------------------------------------------------------------------
@@ -416,7 +515,7 @@ mod python_bindings {
         }
 
         pub fn __repr__(&self) -> String {
-            format!("GameOutcome({})", self.outcome.to_string())
+            format!("GameOutcome({})", self.outcome)
         }
 
         pub fn __eq__(&self, other: &PyGameOutcome) -> bool {
