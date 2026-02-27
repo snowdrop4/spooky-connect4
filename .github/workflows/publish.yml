@@ -41,12 +41,17 @@ jobs:
       - name: Update Cargo.lock
         run: cargo generate-lockfile
 
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Update uv.lock
+        run: uv lock
+
       - name: Create branch and commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b "${{ steps.version.outputs.branch }}"
-          git add Cargo.toml pyproject.toml Cargo.lock
+          git add Cargo.toml pyproject.toml Cargo.lock uv.lock
           git commit -m "release: bump version to ${{ steps.version.outputs.version }}"
           git push origin "${{ steps.version.outputs.branch }}" --force
 
