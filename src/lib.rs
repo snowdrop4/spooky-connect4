@@ -381,8 +381,8 @@ mod python_bindings {
         // Encoding/decoding
         // ---------------------------------------------------------------------
 
-        pub fn encode_game_planes(&self) -> (Vec<f32>, usize, usize, usize) {
-            dispatch_game!(&self.inner, g => encode::encode_game_planes(g))
+        pub fn encode_game_planes(&mut self) -> (Vec<f32>, usize, usize, usize) {
+            dispatch_game_mut!(&mut self.inner, g => encode::encode_game_planes(g))
         }
 
         pub fn decode_action(&self, action: usize) -> Option<PyMove> {
