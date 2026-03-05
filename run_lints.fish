@@ -1,4 +1,5 @@
-set REPO_ROOT (git rev-parse --show-toplevel)
+set SCRIPT_DIR (dirname (status --current-filename))
+cd $SCRIPT_DIR
 
 # ------------------------------------------------------------------------------
 # Python
