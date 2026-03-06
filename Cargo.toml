@@ -15,7 +15,6 @@ crate-type = ["cdylib", "rlib"]
 pyo3 = { version = "0.28", features = ["extension-module"], optional = true }
 paste = "1.0"
 rand = "0.10.0"
-num_cpus = "1.16"
 
 [dev-dependencies]
 criterion = { version = "0.8.2", features = ["html_reports"] }

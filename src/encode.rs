@@ -192,7 +192,9 @@ mod tests {
         use std::thread;
 
         let num_games = 5_000;
-        let num_threads = num_cpus::get();
+        let num_threads = std::thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(1);
         let games_per_thread = num_games / num_threads;
 
         let total_moves_played = Arc::new(AtomicU64::new(0));
