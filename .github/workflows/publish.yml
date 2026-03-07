@@ -16,7 +16,7 @@ jobs:
       branch: ${{ steps.version.outputs.branch }}
       tag: ${{ steps.version.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: master
 
@@ -41,7 +41,7 @@ jobs:
       - name: Update Cargo.lock
         run: cargo generate-lockfile
 
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v7.3.1
 
       - name: Update uv.lock
         run: uv lock
@@ -61,7 +61,7 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ needs.version-bump.outputs.branch }}
 
@@ -82,18 +82,21 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ needs.version-bump.outputs.branch }}
 
       - uses: dtolnay/rust-toolchain@stable
         if: runner.os == 'macOS'
 
+      - uses: astral-sh/setup-uv@v7.3.1
+
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.22
+        uses: pypa/cibuildwheel@v3.4.0
         env:
           CIBW_BUILD: "cp311-* cp312-* cp313-*"
           CIBW_SKIP: "*-musllinux* *-manylinux_i686"
+          CIBW_BUILD_FRONTEND: "uv"
           CIBW_BEFORE_ALL_LINUX: "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && echo 'export PATH=$HOME/.cargo/bin:$PATH' >> /etc/environment"
           CIBW_ENVIRONMENT_LINUX: "PATH=$HOME/.cargo/bin:$PATH"
           CIBW_ARCHS_MACOS: "arm64"
@@ -108,7 +111,7 @@ jobs:
     needs: version-bump
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ needs.version-bump.outputs.branch }}
 
@@ -139,7 +142,7 @@ jobs:
     needs: [version-bump, publish-crates-io, publish-pypi]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: master
           fetch-depth: 0
