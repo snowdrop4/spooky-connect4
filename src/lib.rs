@@ -294,7 +294,21 @@ mod python_bindings {
             })
         }
 
-        pub fn action_size(&self) -> usize {
+        // ---------------------------------------------------------------------
+        // Encoding/decoding
+        // ---------------------------------------------------------------------
+
+        pub fn encode_game_planes(&mut self) -> (Vec<f32>, usize, usize, usize) {
+            dispatch_game_mut!(&mut self.inner, g => encode::encode_game_planes(g))
+        }
+
+        pub fn decode_action(&self, action: usize) -> Option<PyMove> {
+            dispatch_game!(&self.inner, g => {
+                encode::decode_move(action, g).map(|move_| PyMove { move_ })
+            })
+        }
+
+        pub fn total_actions(&self) -> usize {
             dispatch_game!(&self.inner, g => g.width() as usize)
         }
 
@@ -374,20 +388,6 @@ mod python_bindings {
                 g.board().hash(&mut hasher);
                 (g.turn() as i8).hash(&mut hasher);
                 hasher.finish()
-            })
-        }
-
-        // ---------------------------------------------------------------------
-        // Encoding/decoding
-        // ---------------------------------------------------------------------
-
-        pub fn encode_game_planes(&mut self) -> (Vec<f32>, usize, usize, usize) {
-            dispatch_game_mut!(&mut self.inner, g => encode::encode_game_planes(g))
-        }
-
-        pub fn decode_action(&self, action: usize) -> Option<PyMove> {
-            dispatch_game!(&self.inner, g => {
-                encode::decode_move(action, g).map(|move_| PyMove { move_ })
             })
         }
 
