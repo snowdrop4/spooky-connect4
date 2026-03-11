@@ -20,7 +20,7 @@ fn setup_midgame_7x6() -> StdGame {
         if moves.is_empty() {
             break;
         }
-        let mv = moves.choose(&mut rng).unwrap();
+        let mv = moves.choose(&mut rng).expect("setup_midgame_7x6: legal moves must not be empty");
         game.make_move(mv);
     }
     game
@@ -34,7 +34,7 @@ fn setup_midgame_9x9() -> Game9x9 {
         if moves.is_empty() {
             break;
         }
-        let mv = moves.choose(&mut rng).unwrap();
+        let mv = moves.choose(&mut rng).expect("setup_midgame_9x9: legal moves must not be empty");
         game.make_move(mv);
     }
     game
@@ -48,7 +48,7 @@ fn setup_midgame_19x19() -> Game19x19 {
         if moves.is_empty() {
             break;
         }
-        let mv = moves.choose(&mut rng).unwrap();
+        let mv = moves.choose(&mut rng).expect("setup_midgame_19x19: legal moves must not be empty");
         game.make_move(mv);
     }
     game
@@ -79,7 +79,7 @@ fn bench_make_move(c: &mut Criterion) {
         b.iter_batched(
             || game.clone(),
             |mut g| {
-                black_box(g.make_move(moves.first().unwrap()));
+                black_box(g.make_move(moves.first().expect("bench_make_move: legal moves must not be empty")));
             },
             criterion::BatchSize::SmallInput,
         )
@@ -93,7 +93,7 @@ fn bench_make_unmake(c: &mut Criterion) {
         b.iter_batched(
             || game.clone(),
             |mut g| {
-                g.make_move(moves.first().unwrap());
+                g.make_move(moves.first().expect("bench_make_unmake: legal moves must not be empty"));
                 black_box(g.unmake_move());
             },
             criterion::BatchSize::SmallInput,
@@ -138,7 +138,7 @@ fn bench_random_playout_9x9(c: &mut Criterion) {
             let mut game = Game9x9::new(9, 9);
             while !game.is_over() {
                 let moves = game.legal_moves();
-                game.make_move(moves.first().unwrap());
+                game.make_move(moves.first().expect("bench_random_playout_9x9: legal moves must not be empty"));
             }
             black_box(game.outcome())
         })
@@ -151,7 +151,7 @@ fn bench_random_playout_19x19(c: &mut Criterion) {
             let mut game = Game19x19::new(19, 19);
             while !game.is_over() {
                 let moves = game.legal_moves();
-                game.make_move(moves.first().unwrap());
+                game.make_move(moves.first().expect("bench_random_playout_19x19: legal moves must not be empty"));
             }
             black_box(game.outcome())
         })
@@ -166,7 +166,7 @@ fn bench_self_play_step(c: &mut Criterion) {
             |mut g| {
                 let moves = g.legal_moves();
                 let _planes = encode_game_planes(&mut g);
-                g.make_move(moves.first().unwrap());
+                g.make_move(moves.first().expect("bench_self_play_step: legal moves must not be empty"));
                 black_box(&g);
             },
             criterion::BatchSize::SmallInput,

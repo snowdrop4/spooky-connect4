@@ -29,6 +29,9 @@ default = []
 python = ["pyo3"]
 bench = []
 
+[lints.clippy]
+unwrap_used = "deny"
+
 [profile.release]
 lto = true
 codegen-units = 1

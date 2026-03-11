@@ -364,7 +364,7 @@ mod tests {
         for i in 0..5u8 {
             let col = i % STANDARD_COLS;
             let legal = game.legal_moves();
-            let m = legal.iter().find(|m| m.col == col).unwrap();
+            let m = legal.iter().find(|m| m.col == col).expect("test_multiple_unmakes: expected legal move for column");
             game.make_move(m);
         }
 
