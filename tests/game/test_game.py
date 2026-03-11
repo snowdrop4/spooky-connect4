@@ -220,7 +220,7 @@ def test_outcome_properties() -> None:
     assert outcome is not None
     assert outcome.winner() == spooky_connect4.RED
     assert not outcome.is_draw()
-    assert "Red" in outcome.name()
+    assert "Red" in str(outcome)
 
 
 def test_board_representation() -> None:
