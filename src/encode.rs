@@ -57,7 +57,11 @@ pub fn encode_game_planes<const NW: usize>(game: &mut Game<NW>) -> (Vec<f32>, us
 
     // Color plane (last plane)
     let color_plane = HISTORY_LENGTH * PIECE_PLANES;
-    let color_value = if perspective == Player::Red { COLOR_RED } else { COLOR_YELLOW };
+    let color_value = if perspective == Player::Red {
+        COLOR_RED
+    } else {
+        COLOR_YELLOW
+    };
     let color_offset = color_plane * board_size;
     for i in 0..board_size {
         data[color_offset + i] = color_value;
@@ -167,7 +171,8 @@ mod tests {
             let encoded = encode_move(&move_);
             assert_eq!(encoded, col as usize);
 
-            let decoded = decode_move(encoded, &game).expect("test_encode_decode_move: failed to decode move");
+            let decoded = decode_move(encoded, &game)
+                .expect("test_encode_decode_move: failed to decode move");
             assert_eq!(decoded.col, col);
             assert_eq!(decoded.row, 0);
         }
@@ -252,7 +257,8 @@ mod tests {
                             let decoded = decode_move(action, &game);
                             assert!(decoded.is_some(), "Failed to decode action {}", action);
 
-                            let decoded_move = decoded.expect("test_fuzz_encoding_random_games: failed to decode action");
+                            let decoded_move = decoded
+                                .expect("test_fuzz_encoding_random_games: failed to decode action");
                             assert_eq!(
                                 decoded_move.col, move_.col,
                                 "Decoded column {} doesn't match original {}",
@@ -262,7 +268,9 @@ mod tests {
                             thread_moves_tested += 1;
                         }
 
-                        let chosen_move = legal_moves.choose(&mut rng).expect("test_fuzz_encoding_random_games: legal moves must not be empty");
+                        let chosen_move = legal_moves.choose(&mut rng).expect(
+                            "test_fuzz_encoding_random_games: legal moves must not be empty",
+                        );
                         let success = game.make_move(chosen_move);
                         assert!(success, "Failed to make move col {}", chosen_move.col);
 
@@ -278,7 +286,9 @@ mod tests {
         }
 
         for handle in handles {
-            handle.join().expect("test_fuzz_encoding_random_games: worker thread panicked");
+            handle
+                .join()
+                .expect("test_fuzz_encoding_random_games: worker thread panicked");
         }
 
         let final_moves_played = total_moves_played.load(Ordering::Relaxed);
@@ -315,7 +325,9 @@ mod tests {
             let encoding2 = encode_game_planes(&mut game);
             assert_eq!(encoding1, encoding2, "Encoding should be deterministic");
 
-            let chosen_move = legal_moves.choose(&mut rng).expect("test_encoding_consistency: legal moves must not be empty");
+            let chosen_move = legal_moves
+                .choose(&mut rng)
+                .expect("test_encoding_consistency: legal moves must not be empty");
             game.make_move(chosen_move);
         }
     }
@@ -402,7 +414,8 @@ mod tests {
             let encoded = encode_move(&move_);
             assert_eq!(encoded, col as usize);
 
-            let decoded = decode_move(encoded, &game).expect("test_encode_arbitrary_board_size_10x8: failed to decode 10x8 move");
+            let decoded = decode_move(encoded, &game)
+                .expect("test_encode_arbitrary_board_size_10x8: failed to decode 10x8 move");
             assert_eq!(decoded.col, col);
         }
 

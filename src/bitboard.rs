@@ -58,53 +58,28 @@ impl<const NW: usize> Bitboard<NW> {
     /// True if no bits are set.
     #[inline]
     pub fn is_empty(&self) -> bool {
-        let mut i = 0;
-        while i < NW {
-            if self.words[i] != 0 {
-                return false;
-            }
-            i += 1;
-        }
-        true
+        self.words.iter().all(|&w| w == 0)
     }
 
     /// True if any bit is set.
     #[inline]
     pub fn is_nonzero(&self) -> bool {
-        let mut i = 0;
-        while i < NW {
-            if self.words[i] != 0 {
-                return true;
-            }
-            i += 1;
-        }
-        false
+        self.words.iter().any(|&w| w != 0)
     }
 
     /// Population count — number of set bits.
     #[inline]
     pub fn count(&self) -> u32 {
-        let mut total = 0u32;
-        let mut i = 0;
-        while i < NW {
-            total += self.words[i].count_ones();
-            i += 1;
-        }
-        total
+        self.words.iter().map(|w| w.count_ones()).sum()
     }
 
     /// Index of the lowest set bit, or `None` if empty.
     #[inline]
     pub fn lowest_bit_index(&self) -> Option<usize> {
-        let mut i = 0;
-        while i < NW {
-            let w = self.words[i];
-            if w != 0 {
-                return Some(i * 64 + w.trailing_zeros() as usize);
-            }
-            i += 1;
-        }
-        None
+        self.words
+            .iter()
+            .enumerate()
+            .find_map(|(i, &w)| (w != 0).then(|| i * 64 + w.trailing_zeros() as usize))
     }
 
     /// Shift all bits left (toward higher indices) by `n` positions.
@@ -168,13 +143,8 @@ impl<const NW: usize> Bitboard<NW> {
     /// `self & !rhs` — bits in self that are not in rhs.
     #[inline]
     pub fn andnot(self, rhs: Bitboard<NW>) -> Bitboard<NW> {
-        let mut out = [0u64; NW];
-        let mut i = 0;
-        while i < NW {
-            out[i] = self.words[i] & !rhs.words[i];
-            i += 1;
-        }
-        Bitboard { words: out }
+        let words = std::array::from_fn(|i| self.words[i] & !rhs.words[i]);
+        Bitboard { words }
     }
 
     /// Iterate over indices of set bits.
@@ -191,13 +161,8 @@ impl<const NW: usize> BitAnd for Bitboard<NW> {
     type Output = Bitboard<NW>;
     #[inline]
     fn bitand(self, rhs: Bitboard<NW>) -> Bitboard<NW> {
-        let mut out = [0u64; NW];
-        let mut i = 0;
-        while i < NW {
-            out[i] = self.words[i] & rhs.words[i];
-            i += 1;
-        }
-        Bitboard { words: out }
+        let words = std::array::from_fn(|i| self.words[i] & rhs.words[i]);
+        Bitboard { words }
     }
 }
 
@@ -205,24 +170,18 @@ impl<const NW: usize> BitAnd for &Bitboard<NW> {
     type Output = Bitboard<NW>;
     #[inline]
     fn bitand(self, rhs: &Bitboard<NW>) -> Bitboard<NW> {
-        let mut out = [0u64; NW];
-        let mut i = 0;
-        while i < NW {
-            out[i] = self.words[i] & rhs.words[i];
-            i += 1;
-        }
-        Bitboard { words: out }
+        let words = std::array::from_fn(|i| self.words[i] & rhs.words[i]);
+        Bitboard { words }
     }
 }
 
 impl<const NW: usize> BitAndAssign for Bitboard<NW> {
     #[inline]
     fn bitand_assign(&mut self, rhs: Bitboard<NW>) {
-        let mut i = 0;
-        while i < NW {
-            self.words[i] &= rhs.words[i];
-            i += 1;
-        }
+        self.words
+            .iter_mut()
+            .zip(rhs.words)
+            .for_each(|(w, r)| *w &= r);
     }
 }
 
@@ -230,24 +189,18 @@ impl<const NW: usize> BitOr for Bitboard<NW> {
     type Output = Bitboard<NW>;
     #[inline]
     fn bitor(self, rhs: Bitboard<NW>) -> Bitboard<NW> {
-        let mut out = [0u64; NW];
-        let mut i = 0;
-        while i < NW {
-            out[i] = self.words[i] | rhs.words[i];
-            i += 1;
-        }
-        Bitboard { words: out }
+        let words = std::array::from_fn(|i| self.words[i] | rhs.words[i]);
+        Bitboard { words }
     }
 }
 
 impl<const NW: usize> BitOrAssign for Bitboard<NW> {
     #[inline]
     fn bitor_assign(&mut self, rhs: Bitboard<NW>) {
-        let mut i = 0;
-        while i < NW {
-            self.words[i] |= rhs.words[i];
-            i += 1;
-        }
+        self.words
+            .iter_mut()
+            .zip(rhs.words)
+            .for_each(|(w, r)| *w |= r);
     }
 }
 
@@ -255,13 +208,8 @@ impl<const NW: usize> Not for Bitboard<NW> {
     type Output = Bitboard<NW>;
     #[inline]
     fn not(self) -> Bitboard<NW> {
-        let mut out = [0u64; NW];
-        let mut i = 0;
-        while i < NW {
-            out[i] = !self.words[i];
-            i += 1;
-        }
-        Bitboard { words: out }
+        let words = std::array::from_fn(|i| !self.words[i]);
+        Bitboard { words }
     }
 }
 
