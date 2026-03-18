@@ -15,6 +15,15 @@ const CONSTANT_PLANES: usize = 1;
 /// Total number of input planes for the neural network
 pub const TOTAL_INPUT_PLANES: usize = (HISTORY_LENGTH * PIECE_PLANES) + CONSTANT_PLANES;
 
+/// Encoding value indicating a piece is present in a cell
+const PIECE_PRESENT: f32 = 1.0;
+
+/// Encoding value for the color plane when the current player is Red
+const COLOR_RED: f32 = 1.0;
+
+/// Encoding value for the color plane when the current player is Yellow
+const COLOR_YELLOW: f32 = 0.0;
+
 /// Encode the full game state into a flat f32 array for efficient transfer to Python/numpy
 /// Returns (flat_data, num_planes, height, width), where flat_data is in row-major order
 pub fn encode_game_planes<const NW: usize>(game: &mut Game<NW>) -> (Vec<f32>, usize, usize, usize) {
@@ -48,7 +57,7 @@ pub fn encode_game_planes<const NW: usize>(game: &mut Game<NW>) -> (Vec<f32>, us
 
     // Color plane (last plane)
     let color_plane = HISTORY_LENGTH * PIECE_PLANES;
-    let color_value = if perspective == Player::Red { 1.0 } else { 0.0 };
+    let color_value = if perspective == Player::Red { COLOR_RED } else { COLOR_YELLOW };
     let color_offset = color_plane * board_size;
     for i in 0..board_size {
         data[color_offset + i] = color_value;
@@ -76,9 +85,9 @@ fn fill_connect4_planes<const NW: usize>(
             if let Some(player) = game.board().get_piece(&pos) {
                 let idx = row * width + col;
                 if player == perspective {
-                    data[own_offset + idx] = 1.0;
+                    data[own_offset + idx] = PIECE_PRESENT;
                 } else if player == opponent {
-                    data[opp_offset + idx] = 1.0;
+                    data[opp_offset + idx] = PIECE_PRESENT;
                 }
             }
         }
