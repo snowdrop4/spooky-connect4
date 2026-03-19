@@ -129,7 +129,7 @@ impl<const NW: usize> Board<NW> {
     }
 
     /// Check if a column is full.
-    pub fn is_column_full(&self, col: u8, _geo: &BoardGeometry<NW>) -> bool {
+    pub fn is_column_full(&self, col: u8) -> bool {
         let col_usize = col as usize;
         if col_usize >= self.width as usize {
             return true;
@@ -205,7 +205,7 @@ mod tests {
         assert!(!board.is_board_full(&geo));
         for col in 0..STANDARD_COLS {
             assert_eq!(board.column_height(col, &geo), 0);
-            assert!(!board.is_column_full(col, &geo));
+            assert!(!board.is_column_full(col));
         }
     }
 
@@ -216,7 +216,7 @@ mod tests {
         assert!(!board.is_board_full(&geo));
         for col in 0..10 {
             assert_eq!(board.column_height(col, &geo), 0);
-            assert!(!board.is_column_full(col, &geo));
+            assert!(!board.is_column_full(col));
         }
     }
 
@@ -261,7 +261,7 @@ mod tests {
             board.drop_piece(0, Player::Red, &geo);
         }
 
-        assert!(board.is_column_full(0, &geo));
+        assert!(board.is_column_full(0));
         assert_eq!(board.drop_piece(0, Player::Red, &geo), None);
     }
 
@@ -420,7 +420,7 @@ mod tests {
 
         assert_eq!(board.drop_piece(10, Player::Red, &geo), None);
         assert_eq!(board.column_height(10, &geo), 0);
-        assert!(board.is_column_full(10, &geo));
+        assert!(board.is_column_full(10));
     }
 
     #[test]

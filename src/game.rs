@@ -74,7 +74,7 @@ impl<const NW: usize> Game<NW> {
 
         let mut moves = Vec::new();
         for col in 0..self.board.width() {
-            if !self.board.is_column_full(col, &self.geo) {
+            if !self.board.is_column_full(col) {
                 let row = self.board.column_height(col, &self.geo);
                 moves.push(Move::new(col, row));
             }
@@ -91,7 +91,7 @@ impl<const NW: usize> Game<NW> {
             return false;
         }
 
-        !self.board.is_column_full(move_.col, &self.geo)
+        !self.board.is_column_full(move_.col)
             && move_.row == self.board.column_height(move_.col, &self.geo)
     }
 

@@ -70,8 +70,7 @@ impl PyBoard {
 
     pub fn is_column_full(&self, col: usize) -> bool {
         dispatch_board!(&self.inner, b => {
-            let geo = crate::bitboard::BoardGeometry::new(b.width(), b.height());
-            b.is_column_full(col as u8, &geo)
+            b.is_column_full(col as u8)
         })
     }
 
