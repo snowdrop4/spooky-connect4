@@ -44,15 +44,15 @@ impl<const NW: usize> Board<NW> {
     }
 
     pub fn get_piece(&self, pos: &Position) -> Option<Player> {
-        if pos.is_valid(self.width, self.height) {
-            let idx = pos.to_index(self.width);
-            if self.red.get(idx) {
-                Some(Player::Red)
-            } else if self.yellow.get(idx) {
-                Some(Player::Yellow)
-            } else {
-                None
-            }
+        if !pos.is_valid(self.width, self.height) {
+            return None;
+        }
+
+        let idx = pos.to_index(self.width);
+        if self.red.get(idx) {
+            Some(Player::Red)
+        } else if self.yellow.get(idx) {
+            Some(Player::Yellow)
         } else {
             None
         }
