@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use rand::prelude::IndexedRandom;
-use rand::rngs::StdRng;
+use rand::rngs::SmallRng;
 use rand::SeedableRng;
 use spooky_connect4::bitboard::nw_for_board;
 use spooky_connect4::encode::encode_game_planes;
@@ -14,7 +14,7 @@ type Game19x19 = Game<{ nw_for_board(19, 19) }>;
 /// Play ~10 random moves on a fresh game to create a realistic mid-game position.
 fn setup_midgame_7x6() -> StdGame {
     let mut game = StdGame::new(7, 6);
-    let mut rng = StdRng::seed_from_u64(42);
+    let mut rng = SmallRng::seed_from_u64(42);
     for _ in 0..10 {
         let moves = game.legal_moves();
         if moves.is_empty() {
@@ -30,7 +30,7 @@ fn setup_midgame_7x6() -> StdGame {
 
 fn setup_midgame_9x9() -> Game9x9 {
     let mut game = Game9x9::new(9, 9);
-    let mut rng = StdRng::seed_from_u64(42);
+    let mut rng = SmallRng::seed_from_u64(42);
     for _ in 0..10 {
         let moves = game.legal_moves();
         if moves.is_empty() {
@@ -46,7 +46,7 @@ fn setup_midgame_9x9() -> Game9x9 {
 
 fn setup_midgame_19x19() -> Game19x19 {
     let mut game = Game19x19::new(19, 19);
-    let mut rng = StdRng::seed_from_u64(42);
+    let mut rng = SmallRng::seed_from_u64(42);
     for _ in 0..10 {
         let moves = game.legal_moves();
         if moves.is_empty() {
