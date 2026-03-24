@@ -41,7 +41,7 @@ jobs:
       - name: Update Cargo.lock
         run: cargo generate-lockfile
 
-      - uses: astral-sh/setup-uv@v7.6.0
+      - uses: astral-sh/setup-uv@v7
 
       - name: Update uv.lock
         run: uv lock
@@ -89,7 +89,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         if: runner.os == 'macOS'
 
-      - uses: astral-sh/setup-uv@v7.6.0
+      - uses: astral-sh/setup-uv@v7
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.4.0
