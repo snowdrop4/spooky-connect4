@@ -3,10 +3,41 @@ use crate::bitboard::nw_for_board;
 use crate::board::Board;
 use crate::encode;
 use crate::game::Game;
+use crate::limits::{board_dimension_is_valid, MAX_BOARD_DIMENSION, MIN_BOARD_DIMENSION};
 use crate::outcome::GameOutcome;
 use crate::player::Player;
 use crate::position::Position;
 use crate::r#move::Move;
+
+fn validate_board_dimensions(width: usize, height: usize) -> PyResult<(u8, u8)> {
+    let width = u8::try_from(width).map_err(|_| {
+        PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+            "Board width must be between {} and {}",
+            MIN_BOARD_DIMENSION, MAX_BOARD_DIMENSION
+        ))
+    })?;
+    if !board_dimension_is_valid(width) {
+        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+            "Board width must be between {} and {}",
+            MIN_BOARD_DIMENSION, MAX_BOARD_DIMENSION
+        )));
+    }
+
+    let height = u8::try_from(height).map_err(|_| {
+        PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+            "Board height must be between {} and {}",
+            MIN_BOARD_DIMENSION, MAX_BOARD_DIMENSION
+        ))
+    })?;
+    if !board_dimension_is_valid(height) {
+        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+            "Board height must be between {} and {}",
+            MIN_BOARD_DIMENSION, MAX_BOARD_DIMENSION
+        )));
+    }
+
+    Ok((width, height))
+}
 
 // -----------------------------------------------------------------------
 // Enum dispatch via paste! for Game<NW> and Board<NW>

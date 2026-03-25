@@ -16,18 +16,9 @@ impl PyBoard {
 impl PyBoard {
     #[new]
     pub fn new(width: usize, height: usize) -> PyResult<Self> {
-        if !(4..=32).contains(&width) {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                "Board width must be between 4 and 32",
-            ));
-        }
-        if !(4..=32).contains(&height) {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                "Board height must be between 4 and 32",
-            ));
-        }
+        let (width, height) = validate_board_dimensions(width, height)?;
         Ok(PyBoard {
-            inner: make_board_inner(width as u8, height as u8),
+            inner: make_board_inner(width, height),
         })
     }
 

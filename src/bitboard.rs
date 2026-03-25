@@ -1,5 +1,7 @@
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, Not};
 
+use crate::limits::assert_valid_board_dimensions;
+
 /// Compute the number of u64 words needed for a board of given dimensions.
 pub const fn nw_for_board(width: u8, height: u8) -> usize {
     ((width as u16 * height as u16) as usize).div_ceil(64)
@@ -263,8 +265,7 @@ pub struct BoardGeometry<const NW: usize> {
 impl<const NW: usize> BoardGeometry<NW> {
     /// Build geometry for a `width × height` board.
     pub fn new(width: u8, height: u8) -> Self {
-        debug_assert!((2..=32).contains(&width));
-        debug_assert!((2..=32).contains(&height));
+        assert_valid_board_dimensions(width, height);
         let area = width as u16 * height as u16;
         assert!(
             NW == (area as usize).div_ceil(64),

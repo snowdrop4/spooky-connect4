@@ -2,6 +2,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 
 use crate::bitboard::{nw_for_board, Bitboard, BoardGeometry};
+use crate::limits::assert_valid_board_dimensions;
 use crate::player::Player;
 use crate::position::Position;
 
@@ -26,7 +27,19 @@ impl<const NW: usize> Hash for Board<NW> {
 }
 
 impl<const NW: usize> Board<NW> {
+    /// Create a board with dimensions in `4..=32`.
+    /// `NW` must match `ceil(width * height / 64)`.
     pub fn new(width: u8, height: u8) -> Self {
+        assert_valid_board_dimensions(width, height);
+        let required_words = nw_for_board(width, height);
+        assert!(
+            NW == required_words,
+            "NW={} does not match board {}x{} (need {})",
+            NW,
+            width,
+            height,
+            required_words
+        );
         Board {
             red: Bitboard::empty(),
             yellow: Bitboard::empty(),

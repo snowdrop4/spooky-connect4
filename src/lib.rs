@@ -2,6 +2,7 @@ pub mod bitboard;
 pub mod board;
 pub mod encode;
 pub mod game;
+mod limits;
 pub mod r#move;
 pub mod outcome;
 pub mod player;

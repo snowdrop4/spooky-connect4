@@ -4,7 +4,7 @@ Rust and Python library for the game of Connect4.
 
 # Features
 
-- Supports variable board sizes.
+- Supports variable board sizes from `4x4` to `32x32`.
 - Relatively fast.
 - Out-of-the-box support for DL/ML (action encoding and decoding methods).
 
