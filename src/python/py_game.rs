@@ -153,6 +153,24 @@ impl PyGame {
         }
     }
 
+    pub fn state_hash(&self) -> u64 {
+        use std::hash::{Hash, Hasher};
+        dispatch_game!(&self.inner, g => {
+            let mut hasher = std::collections::hash_map::DefaultHasher::new();
+            g.state_hash().hash(&mut hasher);
+            hasher.finish()
+        })
+    }
+
+    pub fn transposition_hash(&self) -> u64 {
+        use std::hash::{Hash, Hasher};
+        dispatch_game!(&self.inner, g => {
+            let mut hasher = std::collections::hash_map::DefaultHasher::new();
+            g.transposition_hash().hash(&mut hasher);
+            hasher.finish()
+        })
+    }
+
     pub fn __hash__(&self) -> u64 {
         use std::hash::{Hash, Hasher};
         dispatch_game!(&self.inner, g => {

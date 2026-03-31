@@ -1,9 +1,29 @@
 use crate::bitboard::BoardGeometry;
 use crate::board::Board;
+use crate::encode::HISTORY_LENGTH;
 use crate::outcome::GameOutcome;
 use crate::player::Player;
 use crate::position::Position;
 use crate::r#move::Move;
+
+const STATE_HASH_HISTORY_LENGTH: usize = HISTORY_LENGTH - 1;
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct StateHash<const NW: usize> {
+    board: Board<NW>,
+    current_player: Player,
+    is_over: bool,
+    outcome: Option<GameOutcome>,
+    recent_move_history: Vec<Move>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct TranspositionHash<const NW: usize> {
+    board: Board<NW>,
+    current_player: Player,
+    is_over: bool,
+    outcome: Option<GameOutcome>,
+}
 
 #[derive(Debug)]
 pub struct Game<const NW: usize> {
@@ -65,6 +85,30 @@ impl<const NW: usize> Game<NW> {
 
     pub fn move_history(&self) -> &[Move] {
         &self.move_history
+    }
+
+    pub fn state_hash(&self) -> StateHash<NW> {
+        let recent_history_start = self
+            .move_history
+            .len()
+            .saturating_sub(STATE_HASH_HISTORY_LENGTH);
+
+        StateHash {
+            board: self.board,
+            current_player: self.current_player,
+            is_over: self.is_over,
+            outcome: self.outcome,
+            recent_move_history: self.move_history[recent_history_start..].to_vec(),
+        }
+    }
+
+    pub fn transposition_hash(&self) -> TranspositionHash<NW> {
+        TranspositionHash {
+            board: self.board,
+            current_player: self.current_player,
+            is_over: self.is_over,
+            outcome: self.outcome,
+        }
     }
 
     pub fn legal_moves(&self) -> Vec<Move> {

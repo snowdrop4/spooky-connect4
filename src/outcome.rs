@@ -1,6 +1,6 @@
 use crate::player::Player;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum GameOutcome {
     RedWin,
     YellowWin,
