@@ -1,8 +1,25 @@
 from typing import Final
 
+import numpy as np
+import numpy.typing as npt
+
 RED: Final[int]
 YELLOW: Final[int]
 TOTAL_INPUT_PLANES: Final[int]
+
+def augment_symmetries(
+    states: npt.NDArray[np.float32],
+    policies: npt.NDArray[np.float32],
+    values: npt.NDArray[np.float32],
+    opponent_policies: npt.NDArray[np.float32],
+    opponent_policy_masks: npt.NDArray[np.float32],
+) -> tuple[
+    npt.NDArray[np.float32],
+    npt.NDArray[np.float32],
+    npt.NDArray[np.float32],
+    npt.NDArray[np.float32],
+    npt.NDArray[np.float32],
+]: ...
 
 class Board:
     def __init__(self, width: int, height: int) -> None: ...
