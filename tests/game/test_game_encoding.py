@@ -11,7 +11,7 @@ def test_random_game_with_encoding() -> None:
 
     while not game.is_over() and moves_count < 42:
         # Encode current state
-        encodings.append(game.encode_game_planes())
+        encodings.append(game.encode_spatial_planes())
 
         # Make a move
         legal_moves = game.legal_moves()

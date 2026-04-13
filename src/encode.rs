@@ -12,8 +12,11 @@ pub const HISTORY_LENGTH: usize = 8;
 /// Number of constant planes (1 for current player color)
 const CONSTANT_PLANES: usize = 1;
 
-/// Total number of input planes for the neural network
-pub const TOTAL_INPUT_PLANES: usize = (HISTORY_LENGTH * PIECE_PLANES) + CONSTANT_PLANES;
+/// Total number of spatial input planes for the neural network
+pub const SPATIAL_INPUT_PLANES: usize = (HISTORY_LENGTH * PIECE_PLANES) + CONSTANT_PLANES;
+
+/// Connect4 does not currently expose any separate global input features.
+pub const GLOBAL_INPUT_FEATURES: usize = 0;
 
 /// Encoding value indicating a piece is present in a cell
 const PIECE_PRESENT: f32 = 1.0;
@@ -26,11 +29,13 @@ const COLOR_YELLOW: f32 = 0.0;
 
 /// Encode the full game state into a flat f32 array for efficient transfer to Python/numpy
 /// Returns (flat_data, num_planes, height, width), where flat_data is in row-major order
-pub fn encode_game_planes<const NW: usize>(game: &mut Game<NW>) -> (Vec<f32>, usize, usize, usize) {
+pub fn encode_spatial_game_planes<const NW: usize>(
+    game: &mut Game<NW>,
+) -> (Vec<f32>, usize, usize, usize) {
     let perspective = game.turn();
     let width = game.width() as usize;
     let height = game.height() as usize;
-    let num_planes = TOTAL_INPUT_PLANES;
+    let num_planes = SPATIAL_INPUT_PLANES;
     let board_size = height * width;
     let total_size = num_planes * board_size;
     let mut data = vec![0.0f32; total_size];
@@ -146,9 +151,9 @@ mod tests {
     #[test]
     fn test_encode_game_empty() {
         let mut game = standard_game();
-        let (data, num_planes, height, width) = encode_game_planes(&mut game);
+        let (data, num_planes, height, width) = encode_spatial_game_planes(&mut game);
 
-        assert_eq!(num_planes, TOTAL_INPUT_PLANES);
+        assert_eq!(num_planes, SPATIAL_INPUT_PLANES);
         assert_eq!(height, game.height() as usize);
         assert_eq!(width, game.width() as usize);
         assert_eq!(data.len(), num_planes * height * width);
@@ -188,7 +193,7 @@ mod tests {
         let move2 = Move::new(1, 0);
         game.make_move(&move2);
 
-        let (data, _num_planes, height, width) = encode_game_planes(&mut game);
+        let (data, _num_planes, height, width) = encode_spatial_game_planes(&mut game);
 
         assert_eq!(get_plane_value(&data, 0, 0, 0, height, width), 1.0);
         assert_eq!(get_plane_value(&data, 0, 0, 1, height, width), 0.0);
@@ -239,8 +244,9 @@ mod tests {
                             break;
                         }
 
-                        let (data, num_planes, height, width) = encode_game_planes(&mut game);
-                        assert_eq!(num_planes, TOTAL_INPUT_PLANES);
+                        let (data, num_planes, height, width) =
+                            encode_spatial_game_planes(&mut game);
+                        assert_eq!(num_planes, SPATIAL_INPUT_PLANES);
                         assert_eq!(height, game.height() as usize);
                         assert_eq!(width, game.width() as usize);
                         assert_eq!(data.len(), num_planes * height * width);
@@ -321,8 +327,8 @@ mod tests {
                 break;
             }
 
-            let encoding1 = encode_game_planes(&mut game);
-            let encoding2 = encode_game_planes(&mut game);
+            let encoding1 = encode_spatial_game_planes(&mut game);
+            let encoding2 = encode_spatial_game_planes(&mut game);
             assert_eq!(encoding1, encoding2, "Encoding should be deterministic");
 
             let chosen_move = legal_moves
@@ -336,7 +342,7 @@ mod tests {
     fn test_encoding_after_undo() {
         let mut game = standard_game();
 
-        let initial_encoding = encode_game_planes(&mut game);
+        let initial_encoding = encode_spatial_game_planes(&mut game);
 
         let move1 = Move::new(0, 0);
         game.make_move(&move1);
@@ -347,7 +353,7 @@ mod tests {
         game.unmake_move();
         game.unmake_move();
 
-        let final_encoding = encode_game_planes(&mut game);
+        let final_encoding = encode_spatial_game_planes(&mut game);
         assert_eq!(
             initial_encoding, final_encoding,
             "Encoding after undo should match initial state"
@@ -362,8 +368,8 @@ mod tests {
         game1.make_move(&Move::new(0, 0));
         game2.make_move(&Move::new(1, 0));
 
-        let encoding1 = encode_game_planes(&mut game1);
-        let encoding2 = encode_game_planes(&mut game2);
+        let encoding1 = encode_spatial_game_planes(&mut game1);
+        let encoding2 = encode_spatial_game_planes(&mut game2);
 
         assert_ne!(
             encoding1, encoding2,
@@ -403,8 +409,8 @@ mod tests {
         assert_eq!(game.width(), 10);
         assert_eq!(game.height(), 8);
 
-        let (data, num_planes, height, width) = encode_game_planes(&mut game);
-        assert_eq!(num_planes, TOTAL_INPUT_PLANES);
+        let (data, num_planes, height, width) = encode_spatial_game_planes(&mut game);
+        assert_eq!(num_planes, SPATIAL_INPUT_PLANES);
         assert_eq!(height, 8);
         assert_eq!(width, 10);
         assert_eq!(data.len(), num_planes * height * width);
@@ -429,8 +435,8 @@ mod tests {
         assert_eq!(game.width(), 5);
         assert_eq!(game.height(), 5);
 
-        let (data, num_planes, height, width) = encode_game_planes(&mut game);
-        assert_eq!(num_planes, TOTAL_INPUT_PLANES);
+        let (data, num_planes, height, width) = encode_spatial_game_planes(&mut game);
+        assert_eq!(num_planes, SPATIAL_INPUT_PLANES);
         assert_eq!(height, 5);
         assert_eq!(width, 5);
         assert_eq!(data.len(), num_planes * height * width);
@@ -444,8 +450,8 @@ mod tests {
             test_game.make_move(&legal_moves[0]);
         }
 
-        let (data2, num_planes2, height2, width2) = encode_game_planes(&mut test_game);
-        assert_eq!(num_planes2, TOTAL_INPUT_PLANES);
+        let (data2, num_planes2, height2, width2) = encode_spatial_game_planes(&mut test_game);
+        assert_eq!(num_planes2, SPATIAL_INPUT_PLANES);
         assert_eq!(data2.len(), num_planes2 * height2 * width2);
     }
 
@@ -454,11 +460,11 @@ mod tests {
         let mut game1 = Game::<{ nw_for_board(7, 6) }>::new(7, 6);
         let mut game2 = Game::<{ nw_for_board(10, 8) }>::new(10, 8);
 
-        let (data1, num_planes1, height1, width1) = encode_game_planes(&mut game1);
-        let (data2, num_planes2, height2, width2) = encode_game_planes(&mut game2);
+        let (data1, num_planes1, height1, width1) = encode_spatial_game_planes(&mut game1);
+        let (data2, num_planes2, height2, width2) = encode_spatial_game_planes(&mut game2);
 
-        assert_eq!(num_planes1, TOTAL_INPUT_PLANES);
-        assert_eq!(num_planes2, TOTAL_INPUT_PLANES);
+        assert_eq!(num_planes1, SPATIAL_INPUT_PLANES);
+        assert_eq!(num_planes2, SPATIAL_INPUT_PLANES);
 
         assert_eq!((height1, width1), (6, 7));
         assert_eq!((height2, width2), (8, 10));

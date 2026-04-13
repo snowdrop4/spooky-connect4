@@ -76,8 +76,12 @@ impl PyGame {
     // Encoding/decoding
     // ---------------------------------------------------------------------
 
-    pub fn encode_game_planes(&mut self) -> (Vec<f32>, usize, usize, usize) {
-        dispatch_game_mut!(&mut self.inner, g => encode::encode_game_planes(g))
+    pub fn encode_spatial_planes(&mut self) -> (Vec<f32>, usize, usize, usize) {
+        dispatch_game_mut!(&mut self.inner, g => encode::encode_spatial_game_planes(g))
+    }
+
+    pub fn encode_global_state_features(&mut self) -> Vec<f32> {
+        Vec::new()
     }
 
     pub fn decode_action(&self, action: usize) -> Option<PyMove> {
@@ -94,8 +98,12 @@ impl PyGame {
         dispatch_game!(&self.inner, g => (g.height() as usize, g.width() as usize))
     }
 
-    pub fn input_plane_count(&self) -> usize {
-        encode::TOTAL_INPUT_PLANES
+    pub fn spatial_input_plane_count(&self) -> usize {
+        encode::SPATIAL_INPUT_PLANES
+    }
+
+    pub fn global_input_feature_count(&self) -> usize {
+        encode::GLOBAL_INPUT_FEATURES
     }
 
     pub fn reward_absolute(&self) -> f32 {

@@ -29,6 +29,7 @@ fn spooky_connect4(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(augment_symmetries, m)?)?;
     m.add("RED", Player::Red as i8)?;
     m.add("YELLOW", Player::Yellow as i8)?;
-    m.add("TOTAL_INPUT_PLANES", encode::TOTAL_INPUT_PLANES)?;
+    m.add("SPATIAL_INPUT_PLANES", encode::SPATIAL_INPUT_PLANES)?;
+    m.add("GLOBAL_INPUT_FEATURES", encode::GLOBAL_INPUT_FEATURES)?;
     Ok(())
 }

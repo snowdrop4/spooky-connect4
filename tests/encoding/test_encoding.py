@@ -3,7 +3,7 @@ import spooky_connect4
 
 def test_encode_state() -> None:
     game = spooky_connect4.Game(width=7, height=6)
-    data, num_planes, height, width = game.encode_game_planes()
+    data, num_planes, height, width = game.encode_spatial_planes()
 
     # Should return flat data with shape metadata
     assert isinstance(data, list)
@@ -19,7 +19,7 @@ def get_plane_value(data: list[float], plane: int, row: int, col: int, height: i
 
 def test_encode_empty_game() -> None:
     game = spooky_connect4.Game(width=7, height=6)
-    data, _num_planes, height, width = game.encode_game_planes()
+    data, _num_planes, height, width = game.encode_spatial_planes()
 
     # First two planes (current player and opponent) should be all zeros
     for plane in range(2):
@@ -35,7 +35,7 @@ def test_encode_with_pieces() -> None:
     move = spooky_connect4.Move(0, 0)
     game.make_move(move)
 
-    data, _num_planes, height, width = game.encode_game_planes()
+    data, _num_planes, height, width = game.encode_spatial_planes()
 
     # Now should have a piece somewhere in the first two planes
     has_piece = False
@@ -64,14 +64,14 @@ def test_encode_different_players() -> None:
     game = spooky_connect4.Game(width=7, height=6)
 
     # Red's turn
-    data_red, _num_planes, _height, _width = game.encode_game_planes()
+    data_red, _num_planes, _height, _width = game.encode_spatial_planes()
 
     # Make a move to switch to Yellow
     move = game.legal_moves()[0]
     game.make_move(move)
 
     # Yellow's turn
-    data_yellow, _, _, _ = game.encode_game_planes()
+    data_yellow, _, _, _ = game.encode_spatial_planes()
 
     # Encodings should be different after a move
     assert data_red != data_yellow

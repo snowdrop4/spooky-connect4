@@ -3,7 +3,7 @@ use rand::prelude::IndexedRandom;
 use rand::rngs::SmallRng;
 use rand::SeedableRng;
 use spooky_connect4::bitboard::nw_for_board;
-use spooky_connect4::encode::encode_game_planes;
+use spooky_connect4::encode::encode_spatial_game_planes;
 use spooky_connect4::game::Game;
 use std::hint::black_box;
 
@@ -117,23 +117,23 @@ fn bench_make_unmake(c: &mut Criterion) {
     });
 }
 
-fn bench_encode_game_planes_9x9(c: &mut Criterion) {
+fn bench_encode_spatial_game_planes_9x9(c: &mut Criterion) {
     let game = setup_midgame_9x9();
-    c.bench_function("encode_game_planes_9x9", |b| {
+    c.bench_function("encode_spatial_game_planes_9x9", |b| {
         b.iter_batched(
             || game.clone(),
-            |mut g| black_box(encode_game_planes(&mut g)),
+            |mut g| black_box(encode_spatial_game_planes(&mut g)),
             criterion::BatchSize::SmallInput,
         )
     });
 }
 
-fn bench_encode_game_planes_19x19(c: &mut Criterion) {
+fn bench_encode_spatial_game_planes_19x19(c: &mut Criterion) {
     let game = setup_midgame_19x19();
-    c.bench_function("encode_game_planes_19x19", |b| {
+    c.bench_function("encode_spatial_game_planes_19x19", |b| {
         b.iter_batched(
             || game.clone(),
-            |mut g| black_box(encode_game_planes(&mut g)),
+            |mut g| black_box(encode_spatial_game_planes(&mut g)),
             criterion::BatchSize::SmallInput,
         )
     });
@@ -189,7 +189,7 @@ fn bench_self_play_step(c: &mut Criterion) {
             || game.clone(),
             |mut g| {
                 let moves = g.legal_moves();
-                let _planes = encode_game_planes(&mut g);
+                let _planes = encode_spatial_game_planes(&mut g);
                 g.make_move(
                     moves
                         .first()
@@ -210,8 +210,8 @@ criterion_group!(
         bench_legal_moves_19x19,
         bench_make_move,
         bench_make_unmake,
-        bench_encode_game_planes_9x9,
-        bench_encode_game_planes_19x19,
+        bench_encode_spatial_game_planes_9x9,
+        bench_encode_spatial_game_planes_19x19,
         bench_outcome,
         bench_self_play_step,
 );
