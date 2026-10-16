@@ -35,6 +35,9 @@ jobs:
       - name: Ruff lint check
         run: uv run ruff check .
 
+      - name: Type check
+        run: uv run ty check
+
       - name: Rust format check
         run: cargo fmt --check
 

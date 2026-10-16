@@ -45,3 +45,8 @@ Includes type hints.
 * [spooky-chess](https://github.com/snowdrop4/spooky-chess)
 * spooky-connect4
 * [spooky-go](https://github.com/snowdrop4/spooky-go)
+
+## Type checking
+
+Install development dependencies with `uv sync --dev`, then run `uv run ty check`.
+Type checking also runs as part of `fish run_lints.fish`.

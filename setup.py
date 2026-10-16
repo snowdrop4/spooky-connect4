@@ -1,5 +1,5 @@
 from setuptools import setup
-from setuptools_rust import Binding, RustExtension  # type: ignore
+from setuptools_rust import Binding, RustExtension
 
 setup(
     rust_extensions=[

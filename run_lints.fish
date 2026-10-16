@@ -7,6 +7,7 @@ cd $SCRIPT_DIR
 
 uv run ruff format .; or exit 1
 uv run ruff check --fix --unsafe-fixes .; or exit 1
+uv run ty check; or exit 1
 
 # ------------------------------------------------------------------------------
 # Rust

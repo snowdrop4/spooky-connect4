@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "spooky_connect4"
-version = "0.7.0"
+version = "0.7.1"
 description = "High-performance Connect4 library with board sizes from 4x4 to 32x32"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -14,7 +14,8 @@ dependencies = []
 [dependency-groups]
 dev = [
     "setuptools-rust",
-    "pyright>=1.1.405",
+    "numpy>=1.24.0",
+    "ty>=0.0.88",
     "pytest>=9.0",
     "pytest-xdist>=3.8.0",
     "ruff>=0.13.1",
